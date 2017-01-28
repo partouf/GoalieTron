@@ -1,0 +1,59 @@
+<div>
+    <label for="patreonic_title">Widget title:</label>
+    <input class="widefat" name="patreonic_title" id="patreonic_title" value="{title}"/>
+</div>
+<div>
+    <label for="patreonic_toptext">Text top:</label>
+    <input class="widefat" name="patreonic_toptext" id="patreonic_toptext" value="{toptext}"/>
+</div>
+<div>
+    <label for="patreonic_bottomtext">Text bottom:</label>
+    <input class="widefat" name="patreonic_bottomtext" id="patreonic_bottomtext" value="{bottomtext}"/>
+</div>
+<div>
+    <label for="patreonic_design">Design:</label>
+    <select class="widefat" id="patreonic_design" name="patreonic_design">
+        <option value="default">Default</option>
+        <option value="fancy">Fancy</option>
+        <option value="minimal">Minimal</option>
+    </select>
+</div>
+<div>
+    <label for="patreonic_metercolor">Color:</label>
+    <select class="widefat" id="patreonic_metercolor" name="patreonic_metercolor">
+        <option value="red">Red</option>
+        <option value="green">Green</option>
+        <option value="orange">Orange</option>
+        <option value="red nostripes">Red without stripes</option>
+        <option value="green nostripes">Green without stripes</option>
+        <option value="orange nostripes">Orange without stripes</option>
+    </select>
+</div>
+<div>
+    <label for="patreonic_showgoaltext">Show goal description:</label>
+    <select class="widefat" id="patreonic_showgoaltext" name="patreonic_showgoaltext">
+        <option value="true">Yes</option>
+        <option value="false">No</option>
+    </select>
+</div>
+<div>
+    <label for="patreonic_showbutton">"Become a patron" button</label>
+    <select class="widefat" id="patreonic_showbutton" name="patreonic_showbutton">
+        <option value="true">Yes</option>
+        <option value="false">No</option>
+    </select>
+</div>
+<div>
+    <label for="patreonic_patreon_userid">Patreon user id:</label>
+    <input class="widefat" name="patreonic_patreon_userid" id="patreonic_patreon_userid" value="{patreon_userid}"/>
+</div>
+
+<script language="JavaScript">
+    jQuery(document).ready(function ()
+    {
+        jQuery("#patreonic_design option[value='{design}']").attr('selected', 'selected');
+        jQuery("#patreonic_metercolor option[value='{metercolor}']").attr('selected', 'selected');
+        jQuery("#patreonic_showgoaltext option[value='{showgoaltext}']").attr('selected', 'selected');
+        jQuery("#patreonic_showbutton option[value='{showbutton}']").attr('selected', 'selected');
+    });
+</script>
