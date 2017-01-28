@@ -14,6 +14,7 @@ To install the plugin from GitHub, there's a couple things you unfortunately nee
 * Zip the patreonic folder
 * Upload the new zip to Wordpress
 
+
 = Authors =
 
 * Partouf
