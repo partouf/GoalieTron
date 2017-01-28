@@ -121,17 +121,19 @@ class Patreonic
 
         if ($this->options['cache_only'] == "yes") {
         } else if (empty($this->options['cache']) || (time() - $this->options['cache_age'] > $this->cachetimeout)) {
-            $url = "https://api.patreon.com/user/" . $this->options['patreon_userid'];
+            if (!empty($this->options['patreon_userid'])) {
+                $url = "https://api.patreon.com/user/" . $this->options['patreon_userid'];
 
-            $context = stream_context_create(array('https' => array('header' => array('Connection: close'), 'timeout' => $this->fetchtimeout, 'ignore_errors' => true)));
+                $context = stream_context_create(array('https' => array('header' => array('Connection: close'), 'timeout' => $this->fetchtimeout, 'ignore_errors' => true)));
 
-            $data_raw = file_get_contents($url, false, $context);
-            if (!empty($data_raw) && $this->StringIsJson($data_raw)) {
-                $this->options['cache'] = $data_raw;
-                $this->SaveOptions("cache");
+                $data_raw = file_get_contents($url, false, $context);
+                if (!empty($data_raw) && $this->StringIsJson($data_raw)) {
+                    $this->options['cache'] = $data_raw;
+                    $this->SaveOptions("cache");
 
-                $this->options['cache_age'] = time();
-                $this->SaveOptions("cache_age");
+                    $this->options['cache_age'] = time();
+                    $this->SaveOptions("cache_age");
+                }
             }
         }
 
