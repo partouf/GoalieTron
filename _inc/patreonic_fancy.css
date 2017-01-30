@@ -145,3 +145,8 @@
 span.goalreached {
     color: #e6461a;
 }
+
+.patreonic_button {
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
