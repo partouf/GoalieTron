@@ -1,4 +1,4 @@
-=== Patreonic ===
+=== GoalieTron ===
 
 License: GPLv2
 Requires at least: 4.7.2

@@ -1,30 +1,35 @@
 <?php
 /**
- * @package patreonic
+ * @package goalietron
  */
 /*
-Plugin Name: Patreonic
-Plugin URI: http://wordpress.org/plugins/patreonic/
+Plugin Name: GoalieTron
+Plugin URI: http://wordpress.org/plugins/goalietron/
 Description: A Patreon plugin that displays your current goal and other information.
 Author: Partouf
 Version: 0.1
 Author URI: https://github.com/partouf
 */
 
-class Patreonic
+class GoalieTron
 {
     private static $instance;
     private $options;
     private $cachetimeout = 60;
     private $fetchtimeout = 3;
 
+    const OptionPrefix = "goalietron_";
+    const MainJSFile = "goalietron.js";
+    const PatreonWebsiteURL = "https://www.patreon.com/";
+    const PatreonUserAPIURL = "https://api.patreon.com/user/";
+
     public static function Instance()
     {
-        if (empty(Patreonic::$instance)) {
-            Patreonic::$instance = new Patreonic();
+        if (empty(GoalieTron::$instance)) {
+            GoalieTron::$instance = new GoalieTron();
         }
 
-        return Patreonic::$instance;
+        return GoalieTron::$instance;
     }
 
     public function __construct()
@@ -49,11 +54,11 @@ class Patreonic
     private function LoadOptions()
     {
         foreach ($this->options as $option_name => $option_value) {
-            $stored_value = get_option("patreonic_" . $option_name);
+            $stored_value = get_option(self::OptionPrefix . $option_name);
             if ($stored_value !== false) {
                 $this->options[$option_name] = $stored_value;
             } else {
-                add_option("patreonic_" . $option_name, $option_value, null);
+                add_option(self::OptionPrefix . $option_name, $option_value, null);
             }
         }
 
@@ -66,23 +71,23 @@ class Patreonic
     private function SaveOptions($specificSetting = null)
     {
         if (!is_null($specificSetting)) {
-            update_option("patreonic_" . $specificSetting, $this->options[$specificSetting]);
+            update_option(self::OptionPrefix . $specificSetting, $this->options[$specificSetting]);
         } else {
             foreach ($this->options as $option_name => $option_value) {
-                update_option("patreonic_" . $option_name, $option_value);
+                update_option(self::OptionPrefix . $option_name, $option_value);
             }
         }
     }
 
     public function DisplayWidget($args)
     {
-        $cssfilename = "patreonic_" . $this->options['design'] . ".css";
+        $cssfilename = self::OptionPrefix . $this->options['design'] . ".css";
 
         wp_register_style($cssfilename, plugin_dir_url(__FILE__) . "_inc/" . $cssfilename);
         wp_enqueue_style($cssfilename);
 
-        wp_register_script("patreonic.js", plugin_dir_url(__FILE__) . "_inc/patreonic.js");
-        wp_enqueue_script("patreonic.js");
+        wp_register_script(self::MainJSFile, plugin_dir_url(__FILE__) . "_inc/" . self::MainJSFile);
+        wp_enqueue_script(self::MainJSFile);
 
         echo $args['before_widget'];
         echo $args['before_title'] . $this->options['title'];
@@ -94,13 +99,13 @@ class Patreonic
         if ($this->options['showbutton'] != "false") {
             $buttonhtml = file_get_contents(__DIR__ . "/views/button.html");
         }
-        $configView = str_replace("{patreonic_button}", $buttonhtml, $configView);
+        $configView = str_replace("{goalietron_button}", $buttonhtml, $configView);
 
         foreach ($this->options as $option_name => $option_value) {
             $configView = str_replace("{" . $option_name . "}", $option_value, $configView);
         }
 
-        $configView = str_replace("{patreonic_json}", $this->GetPatreonRawJSONData(), $configView);
+        $configView = str_replace("{goalietron_json}", $this->GetPatreonRawJSONData(), $configView);
 
         echo "<div>";
         echo $configView;
@@ -122,7 +127,7 @@ class Patreonic
         if ($this->options['cache_only'] == "yes") {
         } else if (empty($this->options['cache']) || (time() - $this->options['cache_age'] > $this->cachetimeout)) {
             if (!empty($this->options['patreon_userid'])) {
-                $url = "https://api.patreon.com/user/" . $this->options['patreon_userid'];
+                $url = self::PatreonUserAPIURL . $this->options['patreon_userid'];
 
                 $context = stream_context_create(array('https' => array('header' => array('Connection: close'), 'timeout' => $this->fetchtimeout, 'ignore_errors' => true)));
 
@@ -150,7 +155,7 @@ class Patreonic
 
     private function GetUserIDFromUserName($username)
     {
-        $url = "https://www.patreon.com/" . $username;
+        $url = self::PatreonWebsiteURL . $username;
 
         $pagedata = file_get_contents($url);
 
@@ -171,8 +176,8 @@ class Patreonic
     private function SavePostedData()
     {
         foreach ($this->options as $option_name => $option_oldvalue) {
-            if (isset($_POST['patreonic_' . $option_name])) {
-                $option_newvalue = $_POST['patreonic_' . $option_name];
+            if (isset($_POST[self::OptionPrefix . $option_name])) {
+                $option_newvalue = $_POST[self::OptionPrefix . $option_name];
             } else {
                 continue;
             }
@@ -213,15 +218,15 @@ class Patreonic
 }
 
 
-function patreonic_widget_display($args)
+function goalietron_widget_display($args)
 {
-    Patreonic::Instance()->DisplayWidget($args);
+    GoalieTron::Instance()->DisplayWidget($args);
 }
 
-function patreonic_control_display()
+function goalietron_control_display()
 {
-    Patreonic::Instance()->DisplaySettings();
+    GoalieTron::Instance()->DisplaySettings();
 }
 
-wp_register_sidebar_widget('patreonic_widget_1', 'Patreonic Widget', 'patreonic_widget_display', array('description' => 'It does things'));
-wp_register_widget_control('patreonic_widget_1', 'Patreonic Control', 'patreonic_control_display', array("hello" => "ok"));
+wp_register_sidebar_widget('goalietron_widget_1', 'GoalieTron Widget', 'goalietron_widget_display', array('description' => 'A Patreon plugin that displays your current goal and other information.'));
+wp_register_widget_control('goalietron_widget_1', 'GoalieTron Control', 'goalietron_control_display', array());

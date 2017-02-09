@@ -1,6 +1,6 @@
 'use strict';
 
-var Patreonic = {
+var GoalieTron = {
     GetCampaign: function() {
         for (var idx in PatreonData.linked) {
             var linkedData = PatreonData.linked[idx];
@@ -48,7 +48,7 @@ var Patreonic = {
         return lastGoal;
     },
     ShowGoalProgress: function(perc) {
-        jQuery("#patreonic_meter > span").each(function() {
+        jQuery("#goalietron_meter > span").each(function() {
             jQuery(this)
                 .data("origWidth", perc + "%")
                 .width(0)
@@ -65,7 +65,7 @@ var Patreonic = {
         {
             pledgeSum = Math.floor(this.GetPledgeSum(campaignData));
 
-            jQuery("#patreonic_paypername").html("per " + campaignData.pay_per_name);
+            jQuery("#goalietron_paypername").html("per " + campaignData.pay_per_name);
         }
 
         if (goalData)
@@ -74,17 +74,17 @@ var Patreonic = {
 
             if (PatreonicShowGoalText)
             {
-                jQuery("#patreonic_goaltext").html(goalData.description);
+                jQuery("#goalietron_goaltext").html(goalData.description);
             }
         }
 
         if (pledgeSum < goalTotal)
         {
-            jQuery("#patreonic_goalmoneytext").html("$" + pledgeSum + " of $" + goalTotal);
+            jQuery("#goalietron_goalmoneytext").html("$" + pledgeSum + " of $" + goalTotal);
         }
         else
         {
-            jQuery("#patreonic_goalmoneytext").html("$" + goalTotal + " <span class='goalreached'>- reached!</span>");
+            jQuery("#goalietron_goalmoneytext").html("$" + goalTotal + " <span class='goalreached'>- reached!</span>");
         }
     }
 };
@@ -92,15 +92,15 @@ var Patreonic = {
 jQuery(document).ready(function() {
     if (typeof PatreonData['data'] == "object")
     {
-        var campaignData = Patreonic.GetCampaign();
-        var goalData = Patreonic.GetActiveGoal();
+        var campaignData = GoalieTron.GetCampaign();
+        var goalData = GoalieTron.GetActiveGoal();
 
         var goalperc = Math.floor((campaignData.pledge_sum / goalData.amount_cents) * 100.0);
 
-        jQuery("#patreonic_percentage").val(goalperc);
+        jQuery("#goalietron_percentage").val(goalperc);
 
-        Patreonic.GoalTextFromTo(campaignData, goalData);
+        GoalieTron.GoalTextFromTo(campaignData, goalData);
 
-        Patreonic.ShowGoalProgress(goalperc)
+        GoalieTron.ShowGoalProgress(goalperc)
     }
 });
