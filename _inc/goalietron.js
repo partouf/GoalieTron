@@ -72,7 +72,7 @@ var GoalieTron = {
         {
             goalTotal = Math.floor(this.GetGoalTotal(goalData));
 
-            if (PatreonicShowGoalText)
+            if (GoalieTronShowGoalText)
             {
                 jQuery("#goalietron_goaltext").html(goalData.description);
             }
