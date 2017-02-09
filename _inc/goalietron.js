@@ -81,11 +81,19 @@ var GoalieTron = {
         if (pledgeSum < goalTotal)
         {
             jQuery("#goalietron_goalmoneytext").html("$" + pledgeSum + " of $" + goalTotal);
+            jQuery("#goalietron_goalreached").html("");
         }
         else
         {
-            jQuery("#goalietron_goalmoneytext").html("$" + goalTotal + " <span class='goalreached'>- reached!</span>");
+            jQuery("#goalietron_goalmoneytext").html("$" + goalTotal);
+            jQuery("#goalietron_goalreached").html("- reached!");
         }
+    },
+    CreateDummyGoal: function(campaignData) {
+        return {
+            "description": "",
+            "amount_cents": campaignData.pledge_sum
+        };
     }
 };
 
@@ -94,13 +102,14 @@ jQuery(document).ready(function() {
     {
         var campaignData = GoalieTron.GetCampaign();
         var goalData = GoalieTron.GetActiveGoal();
+        if (!goalData)
+        {
+            goalData = GoalieTron.CreateDummyGoal(campaignData);
+        }
 
         var goalperc = Math.floor((campaignData.pledge_sum / goalData.amount_cents) * 100.0);
-
         jQuery("#goalietron_percentage").val(goalperc);
-
         GoalieTron.GoalTextFromTo(campaignData, goalData);
-
         GoalieTron.ShowGoalProgress(goalperc)
     }
 });
