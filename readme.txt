@@ -1,22 +1,33 @@
 === Patreonic ===
 
-A plugin for creators that have a page on Patreon.
+License: GPLv2
+Requires at least: 4.7.2
+Tested up to: 4.7.2
+Tags: patreon
+Stable tag: trunk
+Contributors: partouf
+Donate link: https://blockchain.info/address/1BfATaWYzDQbYXk92XuvwkbsiWEzyjretX
 
-It makes use of a public API from Patreon to retreive information about the current pledges and active goal.
+A pledge goal widget for creators that have a Patreon page.
 
+== Description ==
 
-=== Installing from GitHub ===
+This plugin enables you to place a widget on your sidebar to show your current goal and pledge amount on Patreon.
 
-To install the plugin from GitHub, there's a couple things you unfortunately need to do before uploading it to your Wordpress installation:
-* Download the code as a zip (the clone button will give you that option)
-* Extract the zip file to a folder of your liking
-* Rename the folder that's in the folder you just extracted from "Patreonic-master" to "patreonic"
-* Zip the patreonic folder
-* Upload the new zip to Wordpress
+== Installation ==
 
+Upload the zip file on the plugin page of your Wordpress and activate the plugin.
 
-= Authors =
+The plugin is installed as a Widget that you can place on your sidebars. You can configure the settings on the Widget.
 
-* Partouf
+The important part of the configuration is your Patreon user id. You can enter your Patreon user name in this field and the plugin will try to look up your user id when you hit Save.
 
-* The CSS Progressbars originate from https://css-tricks.com/css3-progress-bars/ by Chris Coyier.
+== Screenshots ==
+
+1. "Default" red
+2. "Fancy" green
+3. "Fancy" orange
+4. "Minimal" blue
+5. "Reversed" red
+6. "Streamlined" red
+7. "Swapped" red
