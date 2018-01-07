@@ -2,11 +2,11 @@
 
 var GoalieTron = {
     GetCampaign: function() {
-        for (var idx in PatreonData.linked) {
-            var linkedData = PatreonData.linked[idx];
+        for (var idx in PatreonData.included) {
+            var linkedData = PatreonData.included[idx];
             if (linkedData.type == "campaign")
             {
-                return linkedData;
+                return linkedData.attributes;
             }
         }
 
@@ -25,22 +25,22 @@ var GoalieTron = {
         var campaign = this.GetCampaign();
         var pledged_cents = this.GetPledgeSum(campaign) * 100;
         var lastGoal = null;
-        for (var idx in PatreonData.linked) {
-            var linkedData = PatreonData.linked[idx];
+        for (var idx in PatreonData.included) {
+            var linkedData = PatreonData.included[idx];
             if (linkedData.type == "goal")
             {
-                if ((lastGoal != null) && (pledged_cents > lastGoal.amount_cents) && (pledged_cents < linkedData.amount_cents))
+                if ((lastGoal != null) && (pledged_cents > lastGoal.amount_cents) && (pledged_cents < linkedData.attributes.amount_cents))
                 {
-                    lastGoal = linkedData;
+                    lastGoal = linkedData.attributes;
                     break;
                 }
-                else if ((lastGoal != null) && (pledged_cents < linkedData.amount_cents))
+                else if ((lastGoal != null) && (pledged_cents < linkedData.attributes.amount_cents))
                 {
                     break;
                 }
                 else
                 {
-                    lastGoal = linkedData;
+                    lastGoal = linkedData.attributes;
                 }
             }
         }
