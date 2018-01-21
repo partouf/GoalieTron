@@ -7,7 +7,7 @@ Plugin Name: GoalieTron
 Plugin URI: http://wordpress.org/plugins/goalietron/
 Description: A Patreon plugin that displays your current goal and other information.
 Author: Partouf
-Version: 1.2
+Version: 1.3
 Author URI: https://github.com/partouf
 */
 

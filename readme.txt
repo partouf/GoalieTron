@@ -2,9 +2,9 @@
 
 License: GPLv2
 Requires at least: 4.7.2
-Tested up to: 4.7.2
+Tested up to: 4.9.2
 Tags: patreon, fundraising, goals
-Stable tag: 1.2
+Stable tag: 1.3
 Contributors: partouf
 Donate link: https://blockchain.info/address/1BfATaWYzDQbYXk92XuvwkbsiWEzyjretX
 
