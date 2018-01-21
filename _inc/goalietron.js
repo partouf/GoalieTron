@@ -48,9 +48,11 @@ var GoalieTron = {
         return lastGoal;
     },
     ShowGoalProgress: function(perc) {
+        var percWidth = perc > 100 ? 100 : perc;
+
         jQuery("#goalietron_meter > span").each(function() {
             jQuery(this)
-                .data("origWidth", perc + "%")
+                .data("origWidth", percWidth + "%")
                 .width(0)
                 .animate({
                     width: jQuery(this).data("origWidth")
