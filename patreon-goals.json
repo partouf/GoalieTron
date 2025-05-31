@@ -1,16 +1,8 @@
 {
-    "patrons-20000": {
-        "id": "patrons-20000",
-        "type": "patrons",
-        "target": 20000,
-        "title": "Reach 20,000 patrons",
-        "created_at": 1748710599
-    },
-    "members-10000": {
-        "id": "members-10000",
-        "type": "members",
-        "target": 10000,
-        "title": "Reach 10,000 paid members",
-        "created_at": 1748710602
-    }
+  "patrons-10": {
+    "type": "patrons",
+    "target": 10,
+    "title": "Reach 10 Patrons",
+    "current": 0
+  }
 }

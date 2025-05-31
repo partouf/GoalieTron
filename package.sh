@@ -21,7 +21,7 @@ zip -r goalietron-plugin.zip \
     block-editor.js \
     block-render.php \
     enable-classic-widgets.php \
-    example-patreon-goals.json \
+    patreon-goals.json \
     -x "*.DS_Store" \
     -x "*/.DS_Store"
 

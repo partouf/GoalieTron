@@ -35,7 +35,7 @@ class GoalieTron
     private $patreonClient;
 
     const OptionPrefix = "goalietron_";
-    const MainJSFile = "goalietron.js";
+    const MainJSFile = "goalietron-vanilla.js";
 
     public static function Instance()
     {
@@ -125,7 +125,7 @@ class GoalieTron
         wp_register_style($cssfilename, plugin_dir_url(__FILE__) . "_inc/" . $cssfilename);
         wp_enqueue_style($cssfilename);
 
-        wp_register_script(self::MainJSFile, plugin_dir_url(__FILE__) . "_inc/" . self::MainJSFile);
+        wp_register_script(self::MainJSFile, plugin_dir_url(__FILE__) . "_inc/" . self::MainJSFile, array(), filemtime(plugin_dir_path(__FILE__) . "_inc/" . self::MainJSFile), true);
         wp_enqueue_script(self::MainJSFile);
 
         echo $args['before_widget'];
