@@ -11,6 +11,21 @@ Version: 1.3
 Author URI: https://github.com/partouf
 */
 
+// Include debug script temporarily for troubleshooting
+if (file_exists(__DIR__ . '/goalietron-debug.php')) {
+    require_once __DIR__ . '/goalietron-debug.php';
+}
+
+// Check for required files before including
+if (!file_exists(__DIR__ . '/PatreonClient.php')) {
+    if (is_admin()) {
+        add_action('admin_notices', function() {
+            echo '<div class="notice notice-error"><p>GoalieTron Error: PatreonClient.php file is missing. Please ensure all plugin files are properly uploaded.</p></div>';
+        });
+    }
+    error_log('GoalieTron Error: PatreonClient.php not found!');
+    return;
+}
 require_once __DIR__ . '/PatreonClient.php';
 
 class GoalieTron
@@ -88,9 +103,13 @@ class GoalieTron
 
     private function loadCustomGoals()
     {
-        $goalsFile = plugin_dir_path(__FILE__) . 'patreon-goals.json';
-        if (file_exists($goalsFile)) {
-            $this->patreonClient->loadCustomGoalsFromFile($goalsFile);
+        try {
+            $goalsFile = plugin_dir_path(__FILE__) . 'patreon-goals.json';
+            if (file_exists($goalsFile) && method_exists($this->patreonClient, 'loadCustomGoalsFromFile')) {
+                $this->patreonClient->loadCustomGoalsFromFile($goalsFile);
+            }
+        } catch (Exception $e) {
+            error_log('GoalieTron Error loading custom goals: ' . $e->getMessage());
         }
     }
 
@@ -307,23 +326,32 @@ class GoalieTron
         echo $configView;
     }
 
-    private function generateCustomGoalsOptions()
+    public function generateCustomGoalsOptions()
     {
-        $goals = $this->getAvailableCustomGoals();
-        $options = '';
-        
-        foreach ($goals as $goalId => $goal) {
-            $goalType = ucfirst($goal['type']);
-            $goalTarget = number_format($goal['target']);
-            $options .= '<option value="' . esc_attr($goalId) . '">' . 
-                       esc_html($goal['title']) . ' (' . $goalType . ': ' . $goalTarget . ')</option>';
+        try {
+            $goals = $this->getAvailableCustomGoals();
+            $options = '';
+            
+            if (is_array($goals)) {
+                foreach ($goals as $goalId => $goal) {
+                    if (isset($goal['type']) && isset($goal['target']) && isset($goal['title'])) {
+                        $goalType = ucfirst($goal['type']);
+                        $goalTarget = number_format($goal['target']);
+                        $options .= '<option value="' . esc_attr($goalId) . '">' . 
+                                   esc_html($goal['title']) . ' (' . $goalType . ': ' . $goalTarget . ')</option>';
+                    }
+                }
+            }
+            
+            if (empty($options)) {
+                $options = '<option value="" disabled>No custom goals found</option>';
+            }
+            
+            return $options;
+        } catch (Exception $e) {
+            error_log('GoalieTron Error generating custom goals options: ' . $e->getMessage());
+            return '<option value="" disabled>Error loading custom goals</option>';
         }
-        
-        if (empty($options)) {
-            $options = '<option value="" disabled>No custom goals found</option>';
-        }
-        
-        return $options;
     }
 }
 
@@ -333,14 +361,18 @@ class GoalieTron_Widget extends WP_Widget
 {
     public function __construct()
     {
-        parent::__construct(
-            'goalietron_widget',
-            'GoalieTron Widget',
-            array(
-                'description' => 'A Patreon plugin that displays your current goal and other information.',
-                'classname' => 'goalietron_widget'
-            )
-        );
+        try {
+            parent::__construct(
+                'goalietron_widget',
+                'GoalieTron Widget',
+                array(
+                    'description' => 'A Patreon plugin that displays your current goal and other information.',
+                    'classname' => 'goalietron_widget'
+                )
+            );
+        } catch (Exception $e) {
+            error_log('GoalieTron Widget construction error: ' . $e->getMessage());
+        }
     }
 
     public function widget($args, $instance)
@@ -374,26 +406,40 @@ class GoalieTron_Widget extends WP_Widget
     
     private function display_widget_form($values)
     {
-        $goalietron = GoalieTron::Instance();
-        
-        // Generate custom goals options
-        $customGoalsOptions = $goalietron->generateCustomGoalsOptions();
-        
-        // Load form template
-        $configView = file_get_contents(__DIR__ . "/views/widget-form.html");
-        
-        // Replace placeholders with actual values and proper field names
-        $replacements = array();
-        foreach ($values as $key => $value) {
-            $replacements['{' . $key . '}'] = esc_attr($value);
-            $replacements['{' . $key . '_field_name}'] = $this->get_field_name($key);
-            $replacements['{' . $key . '_field_id}'] = $this->get_field_id($key);
+        try {
+            $goalietron = GoalieTron::Instance();
+            
+            // Generate custom goals options
+            $customGoalsOptions = method_exists($goalietron, 'generateCustomGoalsOptions') ? 
+                                 $goalietron->generateCustomGoalsOptions() : 
+                                 '<option value="" disabled>Custom goals not available</option>';
+            
+            // Load form template
+            $form_file = __DIR__ . "/views/widget-form.html";
+            if (!file_exists($form_file)) {
+                echo '<p>Error: Widget form template not found.</p>';
+                error_log('GoalieTron Error: widget-form.html not found at ' . $form_file);
+                return;
+            }
+            
+            $configView = file_get_contents($form_file);
+            
+            // Replace placeholders with actual values and proper field names
+            $replacements = array();
+            foreach ($values as $key => $value) {
+                $replacements['{' . $key . '}'] = esc_attr($value);
+                $replacements['{' . $key . '_field_name}'] = $this->get_field_name($key);
+                $replacements['{' . $key . '_field_id}'] = $this->get_field_id($key);
+            }
+            $replacements['{custom_goals_options}'] = $customGoalsOptions;
+            
+            $configView = str_replace(array_keys($replacements), array_values($replacements), $configView);
+            
+            echo $configView;
+        } catch (Exception $e) {
+            error_log('GoalieTron Widget form display error: ' . $e->getMessage());
+            echo '<p>Error displaying widget form. Check error logs.</p>';
         }
-        $replacements['{custom_goals_options}'] = $customGoalsOptions;
-        
-        $configView = str_replace(array_keys($replacements), array_values($replacements), $configView);
-        
-        echo $configView;
     }
 
     public function update($new_instance, $old_instance)
@@ -415,9 +461,37 @@ class GoalieTron_Widget extends WP_Widget
     }
 }
 
-// Register the widget
+// Register the widget with error handling
 function register_goalietron_widget()
 {
-    register_widget('GoalieTron_Widget');
+    try {
+        // Ensure WP_Widget class is available
+        if (!class_exists('WP_Widget')) {
+            error_log('GoalieTron Error: WP_Widget class not available during widget registration');
+            return;
+        }
+        
+        // Ensure our widget class is defined
+        if (!class_exists('GoalieTron_Widget')) {
+            error_log('GoalieTron Error: GoalieTron_Widget class not defined');
+            return;
+        }
+        
+        register_widget('GoalieTron_Widget');
+        
+        if (function_exists('goalietron_debug')) {
+            goalietron_debug('Widget registered successfully');
+        }
+    } catch (Exception $e) {
+        error_log('GoalieTron Error during widget registration: ' . $e->getMessage());
+    }
 }
-add_action('widgets_init', 'register_goalietron_widget');
+
+// Ensure widget registration happens at the right time
+if (did_action('widgets_init')) {
+    // If widgets_init already fired, register immediately
+    register_goalietron_widget();
+} else {
+    // Otherwise, wait for widgets_init
+    add_action('widgets_init', 'register_goalietron_widget');
+}
