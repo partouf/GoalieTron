@@ -11,17 +11,16 @@ Version: 1.3
 Author URI: https://github.com/partouf
 */
 
+require_once __DIR__ . '/PatreonClient.php';
+
 class GoalieTron
 {
     private static $instance;
     private $options;
-    private $cachetimeout = 60;
-    private $fetchtimeout = 3;
+    private $patreonClient;
 
     const OptionPrefix = "goalietron_";
     const MainJSFile = "goalietron.js";
-    const PatreonWebsiteURL = "https://www.patreon.com/";
-    const PatreonUserAPIURL = "https://api.patreon.com/user/";
 
     public static function Instance()
     {
@@ -45,9 +44,17 @@ class GoalieTron
             "toptext" => "",
             "bottomtext" => "",
             "showgoaltext" => "true",
-            "showbutton" => "false"
+            "showbutton" => "false",
+            "goal_mode" => "legacy",
+            "custom_goal_id" => "",
+            "patreon_username" => ""
         );
 
+        $this->patreonClient = new PatreonClient();
+        $this->patreonClient->setCacheTimeout(60);
+        $this->patreonClient->setFetchTimeout(3);
+        $this->loadCustomGoals();
+        
         $this->LoadOptions();
     }
 
@@ -79,6 +86,19 @@ class GoalieTron
         }
     }
 
+    private function loadCustomGoals()
+    {
+        $goalsFile = plugin_dir_path(__FILE__) . 'patreon-goals.json';
+        if (file_exists($goalsFile)) {
+            $this->patreonClient->loadCustomGoalsFromFile($goalsFile);
+        }
+    }
+
+    private function getAvailableCustomGoals()
+    {
+        return $this->patreonClient->getCustomGoals();
+    }
+
     public function DisplayWidget($args)
     {
         $cssfilename = self::OptionPrefix . $this->options['design'] . ".css";
@@ -105,7 +125,7 @@ class GoalieTron
             $configView = str_replace("{" . $option_name . "}", $option_value, $configView);
         }
 
-        $configView = str_replace("{goalietron_json}", $this->GetPatreonRawJSONData(), $configView);
+        $configView = str_replace("{goalietron_json}", $this->GetPatreonData(), $configView);
 
         echo "<div>";
         echo $configView;
@@ -114,63 +134,128 @@ class GoalieTron
         echo $args['after_widget'];
     }
 
-    private function StringIsJson($data)
+    private function GetPatreonData()
     {
-        $json = @json_decode($data);
-        return !is_null($json);
+        if ($this->options['goal_mode'] === 'custom' && !empty($this->options['custom_goal_id']) && !empty($this->options['patreon_username'])) {
+            return $this->GetCustomGoalData();
+        } else {
+            return $this->GetPatreonRawJSONData();
+        }
+    }
+
+    private function GetCustomGoalData()
+    {
+        $username = $this->options['patreon_username'];
+        $goalId = $this->options['custom_goal_id'];
+        
+        // Check cache first
+        $cacheKey = 'custom_goal_' . $username . '_' . $goalId;
+        $useCache = !empty($this->options['cache']) && (time() - $this->options['cache_age'] <= 60);
+        
+        if ($useCache && !empty($this->options['cache'])) {
+            return $this->options['cache'];
+        }
+        
+        // Get campaign data with custom goals
+        $campaignData = $this->patreonClient->getCampaignDataWithGoals($username, true);
+        
+        if ($campaignData === false || !isset($campaignData['custom_goals'][$goalId])) {
+            // Fallback to cached data or empty
+            return !empty($this->options['cache']) ? $this->options['cache'] : "{}";
+        }
+        
+        $goal = $campaignData['custom_goals'][$goalId];
+        
+        // Transform custom goal data to match the expected format for the frontend
+        $currentValue = $goal['current'];
+        $targetValue = $goal['target'];
+        
+        // For income goals, values are already in dollars, convert to cents
+        // For other goals, values are counts, multiply by 100 for frontend compatibility
+        if ($goal['type'] === 'income') {
+            $pledgeSum = $currentValue * 100; // Convert dollars to cents
+            $goalAmount = $targetValue * 100; // Convert dollars to cents
+        } else {
+            $pledgeSum = $currentValue * 100; // Use count * 100 for compatibility
+            $goalAmount = $targetValue * 100; // Use count * 100 for compatibility
+        }
+        
+        $legacyFormat = array(
+            'pledge_sum' => $pledgeSum,
+            'patron_count' => isset($campaignData['patron_count']) ? $campaignData['patron_count'] : 0,
+            'goals' => array(
+                array(
+                    'amount' => $goalAmount,
+                    'title' => $goal['title'],
+                    'description' => 'Custom Goal: ' . ucfirst($goal['type']),
+                    'completed_percentage' => $goal['progress_percentage']
+                )
+            ),
+            'name' => isset($campaignData['campaign_name']) ? $campaignData['campaign_name'] : 'Campaign',
+            'custom_goal_mode' => true,
+            'custom_goal_type' => $goal['type'],
+            'custom_goal_current' => $currentValue,
+            'custom_goal_target' => $targetValue
+        );
+        
+        $jsonData = json_encode($legacyFormat);
+        
+        // Update cache
+        $this->options['cache'] = $jsonData;
+        $this->SaveOptions("cache");
+        
+        $this->options['cache_age'] = time();
+        $this->SaveOptions("cache_age");
+        
+        return $jsonData;
     }
 
     private function GetPatreonRawJSONData()
     {
-        $data_raw = false;
-
         if ($this->options['cache_only'] == "yes") {
-        } else if (empty($this->options['cache']) || (time() - $this->options['cache_age'] > $this->cachetimeout)) {
-            if (!empty($this->options['patreon_userid'])) {
-                $url = self::PatreonUserAPIURL . $this->options['patreon_userid'];
-
-                $context = stream_context_create(array('https' => array('header' => array('Connection: close'), 'timeout' => $this->fetchtimeout, 'ignore_errors' => true)));
-
-                $data_raw = file_get_contents($url, false, $context);
-                if (!empty($data_raw) && $this->StringIsJson($data_raw)) {
-                    $this->options['cache'] = $data_raw;
-                    $this->SaveOptions("cache");
-
-                    $this->options['cache_age'] = time();
-                    $this->SaveOptions("cache_age");
-                }
+            // Use cached data only
+            if (!empty($this->options['cache'])) {
+                return $this->options['cache'];
+            } else {
+                return "{}";
             }
         }
-
-        if (!$data_raw) {
+        
+        if (empty($this->options['patreon_userid'])) {
+            return "{}";
+        }
+        
+        // Check if we need to fetch new data
+        $useCache = !empty($this->options['cache']) && (time() - $this->options['cache_age'] <= 60);
+        
+        if ($useCache) {
+            return $this->options['cache'];
+        }
+        
+        // Fetch new data using PatreonClient
+        $data_raw = $this->patreonClient->getUserDataRaw($this->options['patreon_userid'], false);
+        
+        if ($data_raw !== "{}") {
+            // Update cache
+            $this->options['cache'] = $data_raw;
+            $this->SaveOptions("cache");
+            
+            $this->options['cache_age'] = time();
+            $this->SaveOptions("cache_age");
+        } else {
+            // Use cached data if available
             if (!empty($this->options['cache'])) {
                 $data_raw = $this->options['cache'];
-            } else {
-                $data_raw = "{}";
             }
         }
-
+        
         return $data_raw;
     }
 
     private function GetUserIDFromUserName($username)
     {
-        $url = self::PatreonWebsiteURL . $username;
-
-        $pagedata = file_get_contents($url);
-
-        $createridpos = strpos($pagedata, "\"creator_id\": ");
-        if ($createridpos !== false) {
-            $pagedata = substr($pagedata, $createridpos + 14);
-            $endidpos = strpos($pagedata, "\n");
-            if ($endidpos === false) {
-                $endidpos = strpos($pagedata, "}");
-            }
-
-            return trim(substr($pagedata, 0, $endidpos));
-        }
-
-        return -1;
+        $userId = $this->patreonClient->getUserIdFromUsername($username);
+        return $userId !== false ? $userId : -1;
     }
 
     private function SavePostedData()
@@ -207,13 +292,38 @@ class GoalieTron
     {
         if (!empty($_POST)) {
             $this->SavePostedData();
+            $this->loadCustomGoals(); // Reload goals after saving
         }
 
         $configView = file_get_contents(__DIR__ . "/views/config.html");
+        
+        // Generate custom goals options
+        $customGoalsOptions = $this->generateCustomGoalsOptions();
+        $configView = str_replace("{custom_goals_options}", $customGoalsOptions, $configView);
+        
         foreach ($this->options as $option_name => $option_value) {
             $configView = str_replace("{" . $option_name . "}", $option_value, $configView);
         }
         echo $configView;
+    }
+
+    private function generateCustomGoalsOptions()
+    {
+        $goals = $this->getAvailableCustomGoals();
+        $options = '';
+        
+        foreach ($goals as $goalId => $goal) {
+            $goalType = ucfirst($goal['type']);
+            $goalTarget = number_format($goal['target']);
+            $options .= '<option value="' . esc_attr($goalId) . '">' . 
+                       esc_html($goal['title']) . ' (' . $goalType . ': ' . $goalTarget . ')</option>';
+        }
+        
+        if (empty($options)) {
+            $options = '<option value="" disabled>No custom goals found</option>';
+        }
+        
+        return $options;
     }
 }
 
