@@ -16,7 +16,7 @@ require_once __DIR__ . '/PatreonClient.php';
 class GoalieTron
 {
     private static $instance;
-    private $options;
+    public $options;
     private $patreonClient;
 
     const OptionPrefix = "goalietron_";
@@ -328,15 +328,96 @@ class GoalieTron
 }
 
 
-function goalietron_widget_display($args)
+// Modern WordPress Widget Class
+class GoalieTron_Widget extends WP_Widget
 {
-    GoalieTron::Instance()->DisplayWidget($args);
+    public function __construct()
+    {
+        parent::__construct(
+            'goalietron_widget',
+            'GoalieTron Widget',
+            array(
+                'description' => 'A Patreon plugin that displays your current goal and other information.',
+                'classname' => 'goalietron_widget'
+            )
+        );
+    }
+
+    public function widget($args, $instance)
+    {
+        // Get widget settings from database using the instance ID
+        $goalietron = GoalieTron::Instance();
+        
+        // Load settings for this widget instance
+        if (!empty($instance)) {
+            foreach ($instance as $key => $value) {
+                if (array_key_exists($key, $goalietron->options)) {
+                    $goalietron->options[$key] = $value;
+                }
+            }
+        }
+        
+        $goalietron->DisplayWidget($args);
+    }
+
+    public function form($instance)
+    {
+        // Set default values
+        $goalietron = GoalieTron::Instance();
+        $default_values = $goalietron->options;
+        
+        // Merge with saved instance values
+        $values = wp_parse_args($instance, $default_values);
+        
+        $this->display_widget_form($values);
+    }
+    
+    private function display_widget_form($values)
+    {
+        $goalietron = GoalieTron::Instance();
+        
+        // Generate custom goals options
+        $customGoalsOptions = $goalietron->generateCustomGoalsOptions();
+        
+        // Load form template
+        $configView = file_get_contents(__DIR__ . "/views/widget-form.html");
+        
+        // Replace placeholders with actual values and proper field names
+        $replacements = array();
+        foreach ($values as $key => $value) {
+            $replacements['{' . $key . '}'] = esc_attr($value);
+            $replacements['{' . $key . '_field_name}'] = $this->get_field_name($key);
+            $replacements['{' . $key . '_field_id}'] = $this->get_field_id($key);
+        }
+        $replacements['{custom_goals_options}'] = $customGoalsOptions;
+        
+        $configView = str_replace(array_keys($replacements), array_values($replacements), $configView);
+        
+        echo $configView;
+    }
+
+    public function update($new_instance, $old_instance)
+    {
+        $instance = array();
+        
+        // Get all the possible GoalieTron options
+        $goalietron = GoalieTron::Instance();
+        $valid_options = array_keys($goalietron->options);
+        
+        // Sanitize and save each option
+        foreach ($valid_options as $option_name) {
+            if (isset($new_instance[$option_name])) {
+                $instance[$option_name] = sanitize_text_field($new_instance[$option_name]);
+            }
+        }
+        
+        return $instance;
+    }
 }
 
-function goalietron_control_display()
+// Register the widget
+function register_goalietron_widget()
 {
-    GoalieTron::Instance()->DisplaySettings();
+    register_widget('GoalieTron_Widget');
 }
-
-wp_register_sidebar_widget('goalietron_widget_1', 'GoalieTron Widget', 'goalietron_widget_display', array('description' => 'A Patreon plugin that displays your current goal and other information.'));
-wp_register_widget_control('goalietron_widget_1', 'GoalieTron Control', 'goalietron_control_display', array());
+add_action('widgets_init', 'register_goalietron_widget');
