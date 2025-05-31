@@ -113,7 +113,7 @@ class GoalieTron
         }
     }
 
-    private function getAvailableCustomGoals()
+    public function getAvailableCustomGoals()
     {
         return $this->patreonClient->getCustomGoals();
     }
@@ -495,3 +495,84 @@ if (did_action('widgets_init')) {
     // Otherwise, wait for widgets_init
     add_action('widgets_init', 'register_goalietron_widget');
 }
+
+// Register the GoalieTron block
+function register_goalietron_block() {
+    // Check if the register_block_type function exists
+    if (!function_exists('register_block_type')) {
+        return;
+    }
+
+    // Include the render callback file
+    require_once plugin_dir_path(__FILE__) . 'block-render.php';
+
+    // Get custom goals for the editor
+    $goalietron = GoalieTron::Instance();
+    $custom_goals = array();
+    
+    try {
+        $goals = $goalietron->getAvailableCustomGoals();
+        if (is_array($goals)) {
+            foreach ($goals as $goalId => $goal) {
+                if (isset($goal['type']) && isset($goal['target']) && isset($goal['title'])) {
+                    $custom_goals[] = array(
+                        'id' => $goalId,
+                        'title' => $goal['title'],
+                        'type' => ucfirst($goal['type']),
+                        'target' => number_format($goal['target'])
+                    );
+                }
+            }
+        }
+    } catch (Exception $e) {
+        error_log('GoalieTron Block: Error loading custom goals - ' . $e->getMessage());
+    }
+
+    // Register the block editor script with proper dependencies
+    wp_register_script(
+        'goalietron-block-editor',
+        plugin_dir_url(__FILE__) . 'block-editor.js',
+        array('wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-data', 'wp-server-side-render'),
+        filemtime(plugin_dir_path(__FILE__) . 'block-editor.js'),
+        true
+    );
+    
+    // Add custom goals data
+    wp_add_inline_script(
+        'goalietron-block-editor',
+        'window.goalietronCustomGoals = ' . json_encode($custom_goals) . ';',
+        'before'
+    );
+    
+    // Register block type from block.json
+    register_block_type(__DIR__ . '/block.json', array(
+        'editor_script' => 'goalietron-block-editor',
+        'render_callback' => 'goalietron_block_render_callback'
+    ));
+}
+
+// Hook block registration
+add_action('init', 'register_goalietron_block');
+
+// Add block category if needed
+function goalietron_block_categories($categories) {
+    // Check if our category already exists
+    foreach ($categories as $category) {
+        if ($category['slug'] === 'widgets') {
+            return $categories;
+        }
+    }
+    
+    // Add widgets category if it doesn't exist
+    return array_merge(
+        $categories,
+        array(
+            array(
+                'slug' => 'widgets',
+                'title' => __('Widgets', 'goalietron'),
+                'icon' => 'admin-generic',
+            )
+        )
+    );
+}
+add_filter('block_categories_all', 'goalietron_block_categories', 10, 2);
