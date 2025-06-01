@@ -34,7 +34,7 @@ The plugin includes a Widget that you can place on your sidebars. You can config
 3. Add the GoalieTron block to your page or post
 4. Configure the settings in the block inspector panel on the right
 
-The important part of the configuration is your Patreon user id. You can enter your Patreon user name in this field and the plugin will try to look up your user id when you hit Save.
+The important part of the configuration is your Patreon username.
 
 == Screenshots ==
 
