@@ -301,16 +301,19 @@ window.GoalieTronDebug = {
             }
         }
         
-        // Check DOM elements
+        // Check DOM elements within this widget's container
+        var widgetContainer = script.parentNode;
         var elements = {
-            meter: document.getElementById('goalietron_meter'),
-            goalText: document.getElementById('goalietron_goaltext'),
-            goalMoney: document.getElementById('goalietron_goalmoneytext'),
-            topText: document.getElementById('goalietron_toptext'),
-            bottomText: document.getElementById('goalietron_bottomtext')
+            meter: widgetContainer.querySelector('.goalietron_meter'),
+            goalText: widgetContainer.querySelector('.goalietron_goaltext'),
+            goalMoney: widgetContainer.querySelector('.goalietron_goalmoneytext'),
+            topText: widgetContainer.querySelector('.goalietron_toptext'),
+            bottomText: widgetContainer.querySelector('.goalietron_bottomtext'),
+            payper: widgetContainer.querySelector('.goalietron_paypername'),
+            reached: widgetContainer.querySelector('.goalietron_goalreached')
         };
         
-        console.log('DOM Elements found:');
+        console.log('DOM Elements found in this widget:');
         for (var key in elements) {
             console.log('  ' + key + ': ' + (elements[key] ? 'Found' : 'Missing'));
         }
@@ -337,7 +340,7 @@ window.GoalieTronDebug = {
         console.log('Reprocessing widget #' + widgetNumber + ' (ID: ' + widgetId + ')');
         
         if (typeof PatreonData !== 'undefined') {
-            processGoalieTronWidget(PatreonData, ShowGoalText, widgetId);
+            processGoalieTronWidget(PatreonData, ShowGoalText, widgetId, script);
             console.log('Widget reprocessed successfully!');
         } else {
             console.log('ERROR: No PatreonData found for this widget!');
