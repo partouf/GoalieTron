@@ -1,8 +1,9 @@
 {
-  "patrons-10": {
-    "type": "patrons",
-    "target": 10,
-    "title": "Reach 10 Patrons",
-    "current": 0
-  }
+    "patrons-10": {
+        "id": "patrons-10",
+        "type": "patrons",
+        "target": 10,
+        "title": "Reach 10 patrons",
+        "created_at": 1748741732
+    }
 }
