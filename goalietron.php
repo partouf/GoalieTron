@@ -35,7 +35,7 @@ class GoalieTron
     private $patreonClient;
 
     const OptionPrefix = "goalietron_";
-    const MainJSFile = "goalietron-vanilla.js";
+    const MainJSFile = "goalietron.js";
 
     public static function Instance()
     {

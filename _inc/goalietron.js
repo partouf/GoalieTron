@@ -50,14 +50,21 @@ var GoalieTron = {
     ShowGoalProgress: function(perc) {
         var percWidth = perc > 100 ? 100 : perc;
 
-        jQuery("#goalietron_meter > span").each(function() {
-            jQuery(this)
-                .data("origWidth", percWidth + "%")
-                .width(0)
-                .animate({
-                    width: jQuery(this).data("origWidth")
-                }, 1200);
-        });
+        // Vanilla JS version of the animation
+        var progressBar = document.querySelector("#goalietron_meter > span");
+        if (progressBar) {
+            // Set initial width to 0
+            progressBar.style.width = "0%";
+            progressBar.style.transition = "width 1.2s ease-out";
+            
+            // Trigger reflow to ensure transition works
+            progressBar.offsetHeight;
+            
+            // Animate to target width
+            requestAnimationFrame(function() {
+                progressBar.style.width = percWidth + "%";
+            });
+        }
     },
     GoalTextFromTo: function(campaignData, goalData) {
         var pledgeSum = 0;
@@ -67,10 +74,13 @@ var GoalieTron = {
         {
             pledgeSum = Math.floor(this.GetPledgeSum(campaignData));
 
-            if (campaignData.pay_per_name) {
-                jQuery("#goalietron_paypername").html("per " + campaignData.pay_per_name);
-            } else {
-                jQuery("#goalietron_paypername").html("");
+            var payperElement = document.getElementById("goalietron_paypername");
+            if (payperElement) {
+                if (campaignData.pay_per_name) {
+                    payperElement.innerHTML = "per " + campaignData.pay_per_name;
+                } else {
+                    payperElement.innerHTML = "";
+                }
             }
         }
 
@@ -80,13 +90,19 @@ var GoalieTron = {
 
             if (GoalieTronShowGoalText)
             {
-                jQuery("#goalietron_goaltext").html(goalData.description);
+                var goalTextElement = document.getElementById("goalietron_goaltext");
+                if (goalTextElement) {
+                    goalTextElement.innerHTML = goalData.description;
+                }
             }
         }
 
         // Check if this is a count-based goal (patrons, members, posts) vs income goal
         var isCountGoal = goalData && goalData.goal_type && 
                          (goalData.goal_type === 'patrons' || goalData.goal_type === 'members' || goalData.goal_type === 'posts');
+        
+        var moneyTextElement = document.getElementById("goalietron_goalmoneytext");
+        var reachedElement = document.getElementById("goalietron_goalreached");
         
         if (isCountGoal) {
             // For count-based goals, show counts without currency
@@ -102,20 +118,20 @@ var GoalieTron = {
             var targetCount = goalTotal; // goalTotal is already the correct target count
             
             if (currentCount < targetCount) {
-                jQuery("#goalietron_goalmoneytext").html(currentCount.toLocaleString() + " of " + targetCount.toLocaleString());
-                jQuery("#goalietron_goalreached").html("");
+                if (moneyTextElement) moneyTextElement.innerHTML = currentCount.toLocaleString() + " of " + targetCount.toLocaleString();
+                if (reachedElement) reachedElement.innerHTML = "";
             } else {
-                jQuery("#goalietron_goalmoneytext").html(targetCount.toLocaleString());
-                jQuery("#goalietron_goalreached").html("- reached!");
+                if (moneyTextElement) moneyTextElement.innerHTML = targetCount.toLocaleString();
+                if (reachedElement) reachedElement.innerHTML = "- reached!";
             }
         } else {
             // For income goals, show currency
             if (pledgeSum < goalTotal) {
-                jQuery("#goalietron_goalmoneytext").html("$" + pledgeSum + " of $" + goalTotal);
-                jQuery("#goalietron_goalreached").html("");
+                if (moneyTextElement) moneyTextElement.innerHTML = "$" + pledgeSum + " of $" + goalTotal;
+                if (reachedElement) reachedElement.innerHTML = "";
             } else {
-                jQuery("#goalietron_goalmoneytext").html("$" + goalTotal);
-                jQuery("#goalietron_goalreached").html("- reached!");
+                if (moneyTextElement) moneyTextElement.innerHTML = "$" + goalTotal;
+                if (reachedElement) reachedElement.innerHTML = "- reached!";
             }
         }
     },
@@ -127,41 +143,76 @@ var GoalieTron = {
     }
 };
 
-jQuery(document).ready(function() {
-    if (typeof PatreonData['data'] == "object")
-    {
-        var campaignData = GoalieTron.GetCampaign();
-        var goalData = GoalieTron.GetActiveGoal();
-        if (!goalData)
-        {
-            goalData = GoalieTron.CreateDummyGoal(campaignData);
-        }
+// Vanilla JS DOM ready replacement
+function ready(fn) {
+    if (document.readyState !== 'loading') {
+        fn();
+    } else {
+        document.addEventListener('DOMContentLoaded', fn);
+    }
+}
 
-        // Calculate percentage differently for count-based vs income goals
-        var goalperc;
-        var isCountGoal = goalData && goalData.goal_type && 
-                         (goalData.goal_type === 'patrons' || goalData.goal_type === 'members' || goalData.goal_type === 'posts');
+ready(function() {
+    // Find all GoalieTron script tags and process each one
+    var scripts = document.querySelectorAll('script[data-widget-id]');
+    
+    for (var i = 0; i < scripts.length; i++) {
+        var script = scripts[i];
+        var widgetId = script.getAttribute('data-widget-id');
+        var patreonDataVar = widgetId + '_PatreonData';
+        var showGoalTextVar = widgetId + '_ShowGoalText';
         
-        if (isCountGoal) {
-            // For count goals, use actual counts for percentage calculation
-            var currentCount = 0;
-            var targetCount = Math.floor(goalData.amount_cents / 100);
-            
-            if (goalData.goal_type === 'patrons') {
-                currentCount = campaignData.patron_count || 0;
-            } else if (goalData.goal_type === 'members') {
-                currentCount = campaignData.paid_member_count || 0;
-            } else if (goalData.goal_type === 'posts') {
-                currentCount = campaignData.creation_count || 0;
-            }
-            
-            goalperc = Math.floor((currentCount / targetCount) * 100.0);
-        } else {
-            // For income goals, use pledge_sum vs amount_cents
-            goalperc = Math.floor((campaignData.pledge_sum / goalData.amount_cents) * 100.0);
+        // Get the PatreonData for this specific widget
+        var PatreonData = window[patreonDataVar];
+        var GoalieTronShowGoalText = window[showGoalTextVar];
+        
+        
+        if (typeof PatreonData !== 'undefined' && typeof PatreonData['data'] === "object") {
+            processGoalieTronWidget(PatreonData, GoalieTronShowGoalText, widgetId);
         }
-        jQuery("#goalietron_percentage").val(goalperc);
-        GoalieTron.GoalTextFromTo(campaignData, goalData);
-        GoalieTron.ShowGoalProgress(goalperc)
     }
 });
+
+function processGoalieTronWidget(PatreonData, GoalieTronShowGoalText, widgetId) {
+    // Set the current PatreonData globally for the GoalieTron functions
+    window.PatreonData = PatreonData;
+    window.GoalieTronShowGoalText = GoalieTronShowGoalText;
+    
+    var campaignData = GoalieTron.GetCampaign();
+    var goalData = GoalieTron.GetActiveGoal();
+    if (!goalData) {
+        goalData = GoalieTron.CreateDummyGoal(campaignData);
+    }
+
+    // Calculate percentage differently for count-based vs income goals
+    var goalperc;
+    var isCountGoal = goalData && goalData.goal_type && 
+                     (goalData.goal_type === 'patrons' || goalData.goal_type === 'members' || goalData.goal_type === 'posts');
+    
+    if (isCountGoal) {
+        // For count goals, use actual counts for percentage calculation
+        var currentCount = 0;
+        var targetCount = Math.floor(goalData.amount_cents / 100);
+        
+        if (goalData.goal_type === 'patrons') {
+            currentCount = campaignData.patron_count || 0;
+        } else if (goalData.goal_type === 'members') {
+            currentCount = campaignData.paid_member_count || 0;
+        } else if (goalData.goal_type === 'posts') {
+            currentCount = campaignData.creation_count || 0;
+        }
+        
+        goalperc = Math.floor((currentCount / targetCount) * 100.0);
+    } else {
+        // For income goals, use pledge_sum vs amount_cents
+        goalperc = Math.floor((campaignData.pledge_sum / goalData.amount_cents) * 100.0);
+    }
+    
+    var percentageElement = document.getElementById("goalietron_percentage");
+    if (percentageElement) {
+        percentageElement.value = goalperc;
+    }
+    
+    GoalieTron.GoalTextFromTo(campaignData, goalData);
+    GoalieTron.ShowGoalProgress(goalperc);
+}
