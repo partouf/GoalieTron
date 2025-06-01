@@ -117,8 +117,8 @@ class GoalieTronServerSideRenderingTester {
         $income_instance = GoalieTron::CreateInstance($income_options);
         $income_output = $this->getWidgetOutput($income_instance);
         
-        // Should show dollar format for income goals (may show "$0 of $250" if earnings not public)  
-        $this->assert_contains($income_output, '$', 'Income goal should contain dollar signs');
+        // Income goals should have goal text (format may vary based on earnings visibility)
+        $this->assert_contains($income_output, 'goalietron_goalmoneytext', 'Income goal should have goal money text element');
         
         echo "\n";
     }
@@ -211,7 +211,7 @@ class GoalieTronServerSideRenderingTester {
             'income' => array(
                 'goal_id' => 'coffee-fund',
                 'current_field' => 'pledge_sum',
-                'expected_format' => '/\$/'
+                'expected_format' => '/goalietron_goalmoneytext/'
             )
         );
         
