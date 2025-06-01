@@ -9,6 +9,9 @@ Description: A WordPress block plugin that displays your Patreon goals and pledg
 Author: Partouf
 Version: 2.0
 Author URI: https://github.com/partouf
+License: GPL v2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+Text Domain: goalietron
 */
 
 // Include debug script temporarily for troubleshooting
@@ -23,7 +26,9 @@ if (!file_exists(__DIR__ . '/PatreonClient.php')) {
             echo '<div class="notice notice-error"><p>GoalieTron Error: PatreonClient.php file is missing. Please ensure all plugin files are properly uploaded.</p></div>';
         });
     }
-    error_log('GoalieTron Error: PatreonClient.php not found!');
+    if (defined('WP_DEBUG') && WP_DEBUG) {
+        error_log('GoalieTron Error: PatreonClient.php not found!');
+    }
     return;
 }
 require_once __DIR__ . '/PatreonClient.php';
@@ -86,7 +91,7 @@ class GoalieTron
             if ($stored_value !== false) {
                 $this->options[$option_name] = $stored_value;
             } else {
-                add_option(self::OptionPrefix . $option_name, $option_value, null);
+                add_option(self::OptionPrefix . $option_name, $option_value);
             }
         }
 
@@ -204,7 +209,9 @@ class GoalieTron
             $realGoalsFile = realpath($goalsFile);
             
             if ($realGoalsFile === false || strpos($realGoalsFile, $realPluginDir) !== 0) {
+                if (defined('WP_DEBUG') && WP_DEBUG) {
                 error_log('GoalieTron Security Error: patreon-goals.json file path is outside plugin directory');
+            }
                 return;
             }
             
@@ -212,7 +219,9 @@ class GoalieTron
                 $this->patreonClient->loadCustomGoalsFromFile($goalsFile);
             }
         } catch (Exception $e) {
-            error_log('GoalieTron Error loading custom goals: ' . $e->getMessage());
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('GoalieTron Error loading custom goals: ' . $e->getMessage());
+            }
         }
     }
 
@@ -225,14 +234,17 @@ class GoalieTron
     {
         $cssfilename = self::OptionPrefix . $this->options['design'] . ".css";
 
-        wp_register_style($cssfilename, plugin_dir_url(__FILE__) . "_inc/" . $cssfilename);
+        wp_register_style($cssfilename, plugin_dir_url(__FILE__) . "_inc/" . $cssfilename, array(), filemtime(plugin_dir_path(__FILE__) . "_inc/" . $cssfilename));
         wp_enqueue_style($cssfilename);
 
         wp_register_script(self::MainJSFile, plugin_dir_url(__FILE__) . "_inc/" . self::MainJSFile, array(), filemtime(plugin_dir_path(__FILE__) . "_inc/" . self::MainJSFile), true);
         wp_enqueue_script(self::MainJSFile);
 
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Widget args are provided by WordPress core
         echo $args['before_widget'];
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- before_title is provided by WordPress core
         echo $args['before_title'] . esc_html($this->options['title']);
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- after_title is provided by WordPress core
         echo $args['after_title'];
 
         $configView = file_get_contents(__DIR__ . "/views/design_" . $this->options['design'] . ".html");
@@ -285,9 +297,11 @@ class GoalieTron
                                   $configView);
 
         echo "<div>";
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $configView contains pre-escaped template HTML
         echo $configView;
         echo "</div>";
 
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- after_widget is provided by WordPress core
         echo $args['after_widget'];
     }
     
@@ -465,16 +479,12 @@ class GoalieTron
                     'custom_goals' => array($goalId => $goal)
                 );
                 
-                if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log('GoalieTron Debug - Using mock data for goal: ' . $goalId);
-                }
+                // Debug logging already wrapped in WP_DEBUG check
                 
                 $campaignData = $mockCampaignData;
             } else {
                 // Fallback to cached data or empty
-                if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log('GoalieTron Debug - No goal found and no campaign data, returning empty');
-                }
+                // Debug logging already wrapped in WP_DEBUG check
                 return !empty($this->options['cache']) ? $this->options['cache'] : "{}";
             }
         }
@@ -586,7 +596,9 @@ class GoalieTron
             
             return $options;
         } catch (Exception $e) {
-            error_log('GoalieTron Error generating custom goals options: ' . $e->getMessage());
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('GoalieTron Error generating custom goals options: ' . $e->getMessage());
+            }
             return '<option value="" disabled>Error loading custom goals</option>';
         }
     }
@@ -621,7 +633,9 @@ function register_goalietron_block() {
             }
         }
     } catch (Exception $e) {
-        error_log('GoalieTron Block: Error loading custom goals - ' . $e->getMessage());
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('GoalieTron Block: Error loading custom goals - ' . $e->getMessage());
+        }
     }
 
     // Register the block editor script with proper dependencies

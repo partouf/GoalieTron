@@ -117,7 +117,9 @@ class PatreonClient
         $pageData = @file_get_contents($url, false, $context);
         
         if ($pageData === false) {
-            error_log("PatreonClient: Failed to fetch public page for username: $username");
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log("PatreonClient: Failed to fetch public page for username: $username");
+            }
             // Return cached data if available, even if expired
             if (isset($this->cache[$cacheKey])) {
                 return $this->cache[$cacheKey]['data'];
@@ -129,7 +131,9 @@ class PatreonClient
         $campaignData = $this->extractCampaignDataFromHtml($pageData);
         
         if ($campaignData === false) {
-            error_log("PatreonClient: Failed to extract campaign data from HTML for $username");
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log("PatreonClient: Failed to extract campaign data from HTML for $username");
+            }
             // Return cached data if available
             if (isset($this->cache[$cacheKey])) {
                 return $this->cache[$cacheKey]['data'];

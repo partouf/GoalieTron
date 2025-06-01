@@ -1,28 +1,47 @@
 #!/bin/bash
 
-# Simple GoalieTron packaging script - no parameters or prompts
+# GoalieTron packaging script that respects .distignore
 
 cd "$(dirname "$0")"
 
 # Remove old zip if exists
 rm -f goalietron-plugin.zip
 
-# Create zip with all plugin files
-zip -r goalietron-plugin.zip \
-    goalietron.php \
-    PatreonClient.php \
-    patreon-cli.php \
-    readme.txt \
-    LICENSE \
-    views/ \
-    _inc/ \
-    assets/ \
-    block.json \
-    block-editor.js \
-    block-render.php \
-    enable-classic-widgets.php \
-    patreon-goals.json \
-    -x "*.DS_Store" \
-    -x "*/.DS_Store"
+# Create a temporary directory for the plugin
+TEMP_DIR=$(mktemp -d)
+PLUGIN_DIR="$TEMP_DIR/goalietron"
+
+# Copy all files to temp directory
+echo "Copying files..."
+cp -r . "$PLUGIN_DIR"
+
+# Remove files based on .distignore
+if [ -f .distignore ]; then
+    echo "Applying .distignore rules..."
+    cd "$PLUGIN_DIR"
+    
+    # Read .distignore and remove files/directories
+    while IFS= read -r pattern || [ -n "$pattern" ]; do
+        # Skip empty lines and comments
+        if [[ -z "$pattern" ]] || [[ "$pattern" =~ ^# ]]; then
+            continue
+        fi
+        
+        # Remove matching files/directories
+        find . -name "$pattern" -exec rm -rf {} + 2>/dev/null || true
+    done < ../../.distignore
+    
+    cd - > /dev/null
+fi
+
+# Create the zip file
+echo "Creating plugin package..."
+cd "$TEMP_DIR"
+zip -r goalietron-plugin.zip goalietron/ -x "*.DS_Store" -x "*/.DS_Store" -x "*/.*"
+mv goalietron-plugin.zip ..
+
+# Clean up
+cd ..
+rm -rf "$TEMP_DIR"
 
 echo "Created: goalietron-plugin.zip"
