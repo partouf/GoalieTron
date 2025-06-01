@@ -7,7 +7,7 @@ Plugin Name: GoalieTron
 Plugin URI: http://wordpress.org/plugins/goalietron/
 Description: A WordPress block plugin that displays your Patreon goals and pledge progress.
 Author: Partouf
-Version: 1.3
+Version: 2.0
 Author URI: https://github.com/partouf
 */
 

@@ -1,11 +1,11 @@
 === GoalieTron ===
 
 License: GPLv2
-Requires at least: 4.7.2
-Tested up to: 4.9.2
+Requires at least: 6.8.1
+Tested up to: 6.8.1
 Tags: patreon, fundraising, goals
-Stable tag: 1.3
-Contributors: partouf
+Stable tag: 2.0
+Contributors: partouf, claude
 
 A WordPress block plugin for displaying Patreon goals and pledge progress.
 
