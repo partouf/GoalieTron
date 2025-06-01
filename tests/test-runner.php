@@ -41,6 +41,9 @@ class GoalieTronTester {
         // Different designs
         $this->test_different_designs();
         
+        // Button display
+        $this->test_button_display();
+        
         // Summary
         echo "\n============================\n";
         echo "Test Summary:\n";
@@ -308,6 +311,65 @@ class GoalieTronTester {
         
         $this->assert_equals(count($filtered_empty), 1, 'Widgets category added to empty array');
         $this->assert_equals($filtered_empty[0]['slug'], 'widgets', 'Added category has correct slug');
+        
+        echo "\n";
+    }
+    
+    private function test_button_display() {
+        echo "Button Display\n";
+        
+        reset_wp_state();
+        
+        // Simulate WordPress initialization to register blocks
+        simulate_wp_init();
+        
+        // Test case 1: Button enabled
+        $button_enabled_options = array(
+            'goal_mode' => 'custom',
+            'custom_goal_id' => 'patrons-10',
+            'patreon_username' => 'testcreator',
+            'design' => 'default',
+            'showbutton' => 'true',
+            'toptext' => 'Support us!',
+            'bottomtext' => 'Thank you!'
+        );
+        
+        $goalietron_with_button = GoalieTron::CreateInstance($button_enabled_options);
+        
+        $args = array(
+            'before_widget' => '<div class="widget">',
+            'after_widget' => '</div>',
+            'before_title' => '<h2>',
+            'after_title' => '</h2>'
+        );
+        
+        ob_start();
+        $goalietron_with_button->DisplayWidget($args);
+        $output_with_button = ob_get_clean();
+        
+        $this->assert_contains($output_with_button, 'Become a Patron!', 'Button text present when enabled');
+        $this->assert_contains($output_with_button, 'https://www.patreon.com/testcreator', 'Button links to username when enabled');
+        $this->assert_contains($output_with_button, 'data-patreon-widget-type="become-patron-button"', 'Button has Patreon widget attributes');
+        
+        // Test case 2: Button disabled (default behavior)
+        $button_disabled_options = array(
+            'goal_mode' => 'custom',
+            'custom_goal_id' => 'patrons-10',
+            'patreon_username' => 'testcreator',
+            'design' => 'default',
+            'showbutton' => 'false',
+            'toptext' => 'Support us!',
+            'bottomtext' => 'Thank you!'
+        );
+        
+        $goalietron_no_button = GoalieTron::CreateInstance($button_disabled_options);
+        
+        ob_start();
+        $goalietron_no_button->DisplayWidget($args);
+        $output_no_button = ob_get_clean();
+        
+        $this->assert_not_contains($output_no_button, 'Become a Patron!', 'Button text absent when disabled');
+        $this->assert_not_contains($output_no_button, 'https://www.patreon.com/testcreator', 'Button link absent when disabled');
         
         echo "\n";
     }
