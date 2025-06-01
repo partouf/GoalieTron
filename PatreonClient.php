@@ -105,12 +105,12 @@ class PatreonClient
             'http' => [
                 'timeout' => $this->fetchTimeout,
                 'ignore_errors' => true,
-                'user_agent' => 'Mozilla/5.0 (compatible; PatreonClient/1.0)'
+                'user_agent' => 'GoalieTron/2.0 (+https://github.com/partouf/GoalieTron)'
             ],
             'https' => [
                 'timeout' => $this->fetchTimeout,
                 'ignore_errors' => true,
-                'user_agent' => 'Mozilla/5.0 (compatible; PatreonClient/1.0)'
+                'user_agent' => 'GoalieTron/2.0 (+https://github.com/partouf/GoalieTron)'
             ]
         ]);
         
