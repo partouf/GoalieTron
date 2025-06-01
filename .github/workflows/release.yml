@@ -1,0 +1,88 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v2.0, v2.1.0, etc.
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Needed to create releases
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'
+        coverage: none
+    
+    - name: Extract version info
+      id: version
+      run: |
+        # Get version from goalietron.php
+        VERSION=$(grep "Version:" goalietron.php | sed 's/.*Version: //' | tr -d ' ')
+        echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+        
+        # Get tag name
+        TAG_NAME=${GITHUB_REF#refs/tags/}
+        echo "TAG_NAME=${TAG_NAME}" >> $GITHUB_OUTPUT
+        
+        # Validate tag matches plugin version
+        if [ "v${VERSION}" != "${TAG_NAME}" ]; then
+          echo "Warning: Tag ${TAG_NAME} doesn't match plugin version v${VERSION}"
+        fi
+    
+    - name: Run tests
+      run: make test
+    
+    - name: Create plugin package
+      run: |
+        make package
+        mv goalietron-plugin.zip goalietron-${{ steps.version.outputs.TAG_NAME }}.zip
+    
+    - name: Generate release notes
+      id: release_notes
+      run: |
+        cat > release_notes.md << 'EOF'
+        ## GoalieTron ${{ steps.version.outputs.VERSION }}
+        
+        WordPress plugin for displaying Patreon goals and pledge progress.
+        
+        ### What's New
+        - Support for custom goals (patrons, members, posts, income)
+        - WordPress block with server-side rendering
+        - Command-line interface for testing
+        - Offline mode for fast testing
+        - Multiple design themes
+        
+        ### Installation
+        1. Download `goalietron-${{ steps.version.outputs.TAG_NAME }}.zip` from the assets below
+        2. Go to WordPress Admin → Plugins → Add New → Upload Plugin
+        3. Choose the downloaded file and click "Install Now"
+        4. Activate the plugin
+        5. Add the GoalieTron block to any page or post
+        
+        ### Requirements
+        - WordPress 4.7.2 or higher
+        - PHP 7.4 or higher
+        
+        ### Documentation
+        See the [README](https://github.com/partouf/GoalieTron#readme) for detailed documentation.
+        EOF
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: goalietron-${{ steps.version.outputs.TAG_NAME }}.zip
+        name: GoalieTron ${{ steps.version.outputs.VERSION }}
+        body_path: release_notes.md
+        draft: false
+        prerelease: false
+        fail_on_unmatched_files: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

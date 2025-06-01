@@ -3,6 +3,8 @@ name: Test and Package
 on:
   push:
     branches: [ master, main, 'feature/**' ]
+    tags:
+      - 'v*'  # Trigger on version tags like v2.0, v2.1.0, etc.
   pull_request:
     branches: [ master, main ]
   workflow_dispatch:  # Allow manual triggering
@@ -57,7 +59,7 @@ jobs:
   release-package:
     needs: test-and-package
     runs-on: ubuntu-latest
-    if: success() && github.ref == 'refs/heads/master'
+    if: success() && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/'))
     
     steps:
     - name: Checkout code
@@ -73,6 +75,8 @@ jobs:
         make package
         VERSION=$(grep "Version:" goalietron.php | sed 's/.*Version: //')
         mv goalietron-plugin.zip goalietron-v${VERSION}.zip
+        echo "PLUGIN_VERSION=${VERSION}" >> $GITHUB_ENV
+        echo "PLUGIN_FILE=goalietron-v${VERSION}.zip" >> $GITHUB_ENV
     
     - name: Upload release artifact
       uses: actions/upload-artifact@v4
@@ -80,3 +84,27 @@ jobs:
         name: goalietron-release-${{ github.sha }}
         path: goalietron-v*.zip
         retention-days: 90
+    
+    - name: Create GitHub Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: ${{ env.PLUGIN_FILE }}
+        name: GoalieTron v${{ env.PLUGIN_VERSION }}
+        body: |
+          ## GoalieTron v${{ env.PLUGIN_VERSION }}
+          
+          WordPress plugin for displaying Patreon goals and pledge progress.
+          
+          ### Installation
+          1. Download `${{ env.PLUGIN_FILE }}` from the assets below
+          2. Upload to your WordPress plugins directory
+          3. Activate the plugin
+          4. Add the GoalieTron block to your site
+          
+          ### Changelog
+          See [CHANGELOG.md](https://github.com/partouf/GoalieTron/blob/master/CHANGELOG.md) for details.
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
