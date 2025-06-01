@@ -474,15 +474,10 @@ class GoalieTron
                 $currentValue = 0;
         }
         $targetValue = $goal['target'];
-        
-        if ($goal['type'] === 'income') {
-            $pledgeSum = $currentValue * 100;
-            $goalAmount = $targetValue * 100;
-        } else {
-            $pledgeSum = $currentValue * 100;
-            $goalAmount = $targetValue * 100;
-        }
-        
+
+        $pledgeSum = $currentValue * 100;
+        $goalAmount = $targetValue * 100;
+
         $patreonV1Format = array(
             'data' => array(
                 'type' => 'user',
