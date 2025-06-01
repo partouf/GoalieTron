@@ -98,7 +98,8 @@ class GoalieTron
         // Override with custom options (but don't load from database)
         foreach ($custom_options as $key => $value) {
             if (array_key_exists($key, $instance->options)) {
-                $instance->options[$key] = $value;
+                // Sanitize input based on option type
+                $instance->options[$key] = $instance->sanitizeOption($key, $value);
             }
         }
         
@@ -108,6 +109,70 @@ class GoalieTron
         }
         
         return $instance;
+    }
+
+    /**
+     * Sanitize option values based on their type and expected format
+     * 
+     * @param string $key Option name
+     * @param mixed $value Option value
+     * @return mixed Sanitized value
+     */
+    private function sanitizeOption($key, $value)
+    {
+        switch ($key) {
+            case 'patreon_userid':
+            case 'custom_goal_id':
+                // Alphanumeric IDs only
+                return preg_replace('/[^a-zA-Z0-9_-]/', '', $value);
+                
+            case 'patreon_username':
+                // Patreon usernames can contain letters, numbers, underscores, hyphens
+                return preg_replace('/[^a-zA-Z0-9_-]/', '', $value);
+                
+            case 'design':
+                // Only allow predefined design values
+                $valid_designs = array('default', 'fancy', 'minimal', 'streamlined', 'reversed', 'swapped');
+                return in_array($value, $valid_designs) ? $value : 'default';
+                
+            case 'metercolor':
+                // Only allow predefined color values
+                $valid_colors = array('green', 'orange', 'red', 'blue');
+                return in_array($value, $valid_colors) ? $value : 'green';
+                
+            case 'goal_mode':
+                // Only allow predefined goal modes
+                $valid_modes = array('legacy', 'custom');
+                return in_array($value, $valid_modes) ? $value : 'custom';
+                
+            case 'showgoaltext':
+            case 'showbutton':
+            case 'cache_only':
+                // Boolean-like values
+                return in_array($value, array('true', 'false')) ? $value : 'false';
+                
+            case 'cache_age':
+                // Integer timestamp
+                return intval($value);
+                
+            case 'title':
+            case 'toptext':
+            case 'bottomtext':
+                // Text fields - sanitize for safe storage and display
+                return sanitize_text_field($value);
+                
+            case 'cache':
+                // JSON data - validate it's valid JSON
+                if (is_string($value)) {
+                    $decoded = json_decode($value, true);
+                    return (json_last_error() === JSON_ERROR_NONE) ? $value : '';
+                }
+                return '';
+                
+            default:
+                // Unknown option - sanitize as text field
+                return sanitize_text_field($value);
+        }
     }
 
     private function SaveOptions($specificSetting = null)
@@ -124,7 +189,19 @@ class GoalieTron
     private function loadCustomGoals()
     {
         try {
-            $goalsFile = plugin_dir_path(__FILE__) . 'patreon-goals.json';
+            // Validate file path is within plugin directory
+            $pluginDir = plugin_dir_path(__FILE__);
+            $goalsFile = $pluginDir . 'patreon-goals.json';
+            
+            // Security check: ensure file is within plugin directory
+            $realPluginDir = realpath($pluginDir);
+            $realGoalsFile = realpath($goalsFile);
+            
+            if ($realGoalsFile === false || strpos($realGoalsFile, $realPluginDir) !== 0) {
+                error_log('GoalieTron Security Error: patreon-goals.json file path is outside plugin directory');
+                return;
+            }
+            
             if (file_exists($goalsFile) && method_exists($this->patreonClient, 'loadCustomGoalsFromFile')) {
                 $this->patreonClient->loadCustomGoalsFromFile($goalsFile);
             }
@@ -149,7 +226,7 @@ class GoalieTron
         wp_enqueue_script(self::MainJSFile);
 
         echo $args['before_widget'];
-        echo $args['before_title'] . $this->options['title'];
+        echo $args['before_title'] . esc_html($this->options['title']);
         echo $args['after_title'];
 
         $configView = file_get_contents(__DIR__ . "/views/design_" . $this->options['design'] . ".html");
@@ -161,7 +238,9 @@ class GoalieTron
         $configView = str_replace("{goalietron_button}", $buttonhtml, $configView);
 
         foreach ($this->options as $option_name => $option_value) {
-            $configView = str_replace("{" . $option_name . "}", $option_value, $configView);
+            // Escape output based on context - most template variables are used in HTML context
+            $escaped_value = esc_html($option_value);
+            $configView = str_replace("{" . $option_name . "}", $escaped_value, $configView);
         }
 
         $patreonData = $this->GetPatreonData();

@@ -364,13 +364,25 @@ class PatreonClient
         }
         
         $json = file_get_contents($filePath);
+        if ($json === false) {
+            return false;
+        }
+        
         $goals = json_decode($json, true);
         
         if (json_last_error() !== JSON_ERROR_NONE || !is_array($goals)) {
             return false;
         }
         
-        $this->customGoals = $goals;
+        // Validate and sanitize the goals data structure
+        $sanitizedGoals = array();
+        foreach ($goals as $goalId => $goal) {
+            if ($this->validateGoalData($goalId, $goal)) {
+                $sanitizedGoals[$goalId] = $this->sanitizeGoalData($goal);
+            }
+        }
+        
+        $this->customGoals = $sanitizedGoals;
         return true;
     }
     
@@ -388,6 +400,69 @@ class PatreonClient
     
     
     
+    /**
+     * Validate goal data structure
+     * 
+     * @param string $goalId
+     * @param array $goal
+     * @return bool
+     */
+    private function validateGoalData($goalId, $goal)
+    {
+        // Validate goal ID format
+        if (!is_string($goalId) || !preg_match('/^[a-zA-Z0-9_-]+$/', $goalId)) {
+            return false;
+        }
+        
+        // Validate goal structure
+        if (!is_array($goal)) {
+            return false;
+        }
+        
+        // Required fields
+        $requiredFields = array('type', 'target', 'title');
+        foreach ($requiredFields as $field) {
+            if (!isset($goal[$field])) {
+                return false;
+            }
+        }
+        
+        // Validate goal type
+        $validTypes = array('patrons', 'members', 'posts', 'income');
+        if (!in_array($goal['type'], $validTypes)) {
+            return false;
+        }
+        
+        // Validate target is positive number
+        if (!is_numeric($goal['target']) || $goal['target'] <= 0) {
+            return false;
+        }
+        
+        // Validate title is string
+        if (!is_string($goal['title']) || strlen($goal['title']) > 255) {
+            return false;
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Sanitize goal data
+     * 
+     * @param array $goal
+     * @return array
+     */
+    private function sanitizeGoalData($goal)
+    {
+        return array(
+            'type' => $goal['type'], // Already validated
+            'target' => max(1, intval($goal['target'])), // Ensure positive integer
+            'title' => substr(trim($goal['title']), 0, 255), // Limit title length
+            'current' => isset($goal['current']) ? max(0, intval($goal['current'])) : 0,
+            'progress_percentage' => isset($goal['progress_percentage']) ? max(0, min(100, floatval($goal['progress_percentage']))) : 0
+        );
+    }
+
     /**
      * Check if a string is valid JSON
      * 
