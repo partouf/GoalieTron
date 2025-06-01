@@ -19,7 +19,8 @@ cp -r . "$PLUGIN_DIR"
 if [ -f .distignore ]; then
     echo "Applying .distignore rules..."
     cd "$PLUGIN_DIR"
-    
+echo $PLUGIN_DIR
+
     # Read .distignore and remove files/directories
     while IFS= read -r pattern || [ -n "$pattern" ]; do
         # Skip empty lines and comments
@@ -29,19 +30,21 @@ if [ -f .distignore ]; then
         
         # Remove matching files/directories
         find . -name "$pattern" -exec rm -rf {} + 2>/dev/null || true
-    done < ../../.distignore
+    done < $PLUGIN_DIR/.distignore
     
     cd - > /dev/null
 fi
+
+CURDIR=$PWD 
 
 # Create the zip file
 echo "Creating plugin package..."
 cd "$TEMP_DIR"
 zip -r goalietron-plugin.zip goalietron/ -x "*.DS_Store" -x "*/.DS_Store" -x "*/.*"
-mv goalietron-plugin.zip ..
+
+mv goalietron-plugin.zip $CURDIR
 
 # Clean up
-cd ..
 rm -rf "$TEMP_DIR"
 
 echo "Created: goalietron-plugin.zip"

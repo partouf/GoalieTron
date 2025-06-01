@@ -1,40 +1,12 @@
 # Files and directories to exclude from the plugin distribution
-
-# Development files
 .git
 .github
 .gitignore
 .distignore
+CLAUDE.md
 Makefile
-phpunit.xml
-composer.json
-composer.lock
-
-# Documentation
-CHANGELOG.md
-CONTRIBUTING.md
-
-# Tests
-tests/
-
-# CLI tool (not part of WordPress plugin)
+README.md
+tests
 patreon-cli.php
-
-# Debug files
-goalietron-debug.php
-
-# Node modules (if any)
-node_modules/
-
-# Editor files
-.vscode
-.idea
-*.swp
-*.swo
-*~
-.DS_Store
-
-# Build files
 *.zip
-build/
-dist/
+package.sh
