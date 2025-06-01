@@ -89,6 +89,26 @@ class GoalieTron
             $this->SaveOptions("metercolor");
         }
     }
+    
+    // Add a method to create instance with custom options (for blocks)
+    public static function CreateInstance($custom_options = array())
+    {
+        $instance = new GoalieTron();
+        
+        // Override with custom options (but don't load from database)
+        foreach ($custom_options as $key => $value) {
+            if (array_key_exists($key, $instance->options)) {
+                $instance->options[$key] = $value;
+            }
+        }
+        
+        // Ensure custom goals are loaded for custom mode blocks
+        if ($instance->options['goal_mode'] === 'custom') {
+            $instance->loadCustomGoals();
+        }
+        
+        return $instance;
+    }
 
     private function SaveOptions($specificSetting = null)
     {
@@ -144,7 +164,19 @@ class GoalieTron
             $configView = str_replace("{" . $option_name . "}", $option_value, $configView);
         }
 
-        $configView = str_replace("{goalietron_json}", $this->GetPatreonData(), $configView);
+        $patreonData = $this->GetPatreonData();
+        
+        // Create unique ID for this widget instance to avoid variable conflicts
+        $widgetId = 'gt_' . uniqid();
+        
+        // Replace the generic PatreonData variable with unique one and add widget ID
+        $configView = str_replace('PatreonData', $widgetId . '_PatreonData', $configView);
+        $configView = str_replace('GoalieTronShowGoalText', $widgetId . '_ShowGoalText', $configView);
+        
+        // Add widget ID for JavaScript to use
+        $configView = str_replace('<script language="JavaScript">', '<script language="JavaScript" data-widget-id="' . $widgetId . '">', $configView);
+        
+        $configView = str_replace("{goalietron_json}", $patreonData, $configView);
 
         echo "<div>";
         echo $configView;
@@ -158,8 +190,64 @@ class GoalieTron
         if ($this->options['goal_mode'] === 'custom' && !empty($this->options['custom_goal_id']) && !empty($this->options['patreon_username'])) {
             return $this->GetCustomGoalData();
         } else {
+            // If custom mode but missing settings, return test data
+            if ($this->options['goal_mode'] === 'custom') {
+                return $this->GetCustomGoalDataFallback();
+            }
             return $this->GetPatreonRawJSONData();
         }
+    }
+    
+    private function GetCustomGoalDataFallback()
+    {
+        // Create test data when username is missing but custom goal is selected
+        $goalId = $this->options['custom_goal_id'];
+        if (empty($goalId)) {
+            $goalId = 'patrons-10'; // Default goal
+        }
+        
+        $goals = $this->patreonClient->getCustomGoals();
+        if (!isset($goals[$goalId])) {
+            return "{}";
+        }
+        
+        $goal = $goals[$goalId];
+        
+        // Create test data with 0 current progress
+        $patreonV1Format = array(
+            'data' => array(
+                'type' => 'user',
+                'id' => 'test-user',
+                'attributes' => array(
+                    'full_name' => 'Test Campaign'
+                )
+            ),
+            'included' => array(
+                array(
+                    'type' => 'campaign',
+                    'id' => 'test-campaign',
+                    'attributes' => array(
+                        'patron_count' => 0,
+                        'paid_member_count' => 0,
+                        'creation_count' => 0,
+                        'pledge_sum' => 0,
+                        'pay_per_name' => $goal['type'] === 'income' ? 'month' : ''
+                    )
+                ),
+                array(
+                    'type' => 'goal',
+                    'id' => 'test-goal',
+                    'attributes' => array(
+                        'amount_cents' => $goal['target'] * 100,
+                        'description' => $goal['title'],
+                        'title' => $goal['title'],
+                        'goal_type' => $goal['type']
+                    )
+                )
+            )
+        );
+        
+        return json_encode($patreonV1Format);
     }
 
     private function GetCustomGoalData()
@@ -167,20 +255,50 @@ class GoalieTron
         $username = $this->options['patreon_username'];
         $goalId = $this->options['custom_goal_id'];
         
+        error_log("GetCustomGoalData: username=$username, goalId=$goalId");
+        
         // Check cache first
         $cacheKey = 'custom_goal_' . $username . '_' . $goalId;
         $useCache = !empty($this->options['cache']) && (time() - $this->options['cache_age'] <= 60);
         
         if ($useCache && !empty($this->options['cache'])) {
+            error_log("GetCustomGoalData: Using cached data");
             return $this->options['cache'];
         }
+        
+        error_log("GetCustomGoalData: Fetching fresh data");
         
         // Get campaign data with custom goals
         $campaignData = $this->patreonClient->getCampaignDataWithGoals($username, true);
         
+        
         if ($campaignData === false || !isset($campaignData['custom_goals'][$goalId])) {
-            // Fallback to cached data or empty
-            return !empty($this->options['cache']) ? $this->options['cache'] : "{}";
+            // If no campaign data but we have goals, create mock data with real goal
+            $goals = $this->patreonClient->getCustomGoals();
+            if (isset($goals[$goalId])) {
+                $goal = $goals[$goalId];
+                
+                // Create mock campaign data for testing
+                $mockCampaignData = array(
+                    'patron_count' => 0,
+                    'paid_member_count' => 0,
+                    'creation_count' => 0,
+                    'campaign_name' => 'Test Campaign',
+                    'custom_goals' => array($goalId => $goal)
+                );
+                
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    error_log('GoalieTron Debug - Using mock data for goal: ' . $goalId);
+                }
+                
+                $campaignData = $mockCampaignData;
+            } else {
+                // Fallback to cached data or empty
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    error_log('GoalieTron Debug - No goal found and no campaign data, returning empty');
+                }
+                return !empty($this->options['cache']) ? $this->options['cache'] : "{}";
+            }
         }
         
         $goal = $campaignData['custom_goals'][$goalId];
@@ -199,25 +317,44 @@ class GoalieTron
             $goalAmount = $targetValue * 100; // Use count * 100 for compatibility
         }
         
-        $legacyFormat = array(
-            'pledge_sum' => $pledgeSum,
-            'patron_count' => isset($campaignData['patron_count']) ? $campaignData['patron_count'] : 0,
-            'goals' => array(
-                array(
-                    'amount' => $goalAmount,
-                    'title' => $goal['title'],
-                    'description' => 'Custom Goal: ' . ucfirst($goal['type']),
-                    'completed_percentage' => $goal['progress_percentage']
+        // Format data to match Patreon API v1 structure that the JavaScript expects
+        $patreonV1Format = array(
+            'data' => array(
+                'type' => 'user',
+                'id' => 'custom-user',
+                'attributes' => array(
+                    'full_name' => isset($campaignData['campaign_name']) ? $campaignData['campaign_name'] : 'Campaign'
                 )
             ),
-            'name' => isset($campaignData['campaign_name']) ? $campaignData['campaign_name'] : 'Campaign',
-            'custom_goal_mode' => true,
-            'custom_goal_type' => $goal['type'],
-            'custom_goal_current' => $currentValue,
-            'custom_goal_target' => $targetValue
+            'included' => array(
+                // Campaign data
+                array(
+                    'type' => 'campaign',
+                    'id' => 'custom-campaign',
+                    'attributes' => array(
+                        'patron_count' => isset($campaignData['patron_count']) ? $campaignData['patron_count'] : 0,
+                        'paid_member_count' => isset($campaignData['paid_member_count']) ? $campaignData['paid_member_count'] : 0,
+                        'creation_count' => isset($campaignData['creation_count']) ? $campaignData['creation_count'] : 0,
+                        'pledge_sum' => $pledgeSum,
+                        'pay_per_name' => $goal['type'] === 'income' ? 'month' : ''
+                    )
+                ),
+                // Goal data
+                array(
+                    'type' => 'goal',
+                    'id' => 'custom-goal',
+                    'attributes' => array(
+                        'amount_cents' => $goalAmount,
+                        'description' => $goal['title'],
+                        'title' => $goal['title'],
+                        'goal_type' => $goal['type']
+                    )
+                )
+            )
         );
         
-        $jsonData = json_encode($legacyFormat);
+        $jsonData = json_encode($patreonV1Format);
+        
         
         // Update cache
         $this->options['cache'] = $jsonData;
@@ -377,6 +514,10 @@ class GoalieTron_Widget extends WP_Widget
 
     public function widget($args, $instance)
     {
+        // Always log to help debug (remove for production)
+        error_log('=== GoalieTron Widget Called ===');
+        error_log('GoalieTron Widget - Instance data: ' . print_r($instance, true));
+        
         // Get widget settings from database using the instance ID
         $goalietron = GoalieTron::Instance();
         
@@ -387,6 +528,10 @@ class GoalieTron_Widget extends WP_Widget
                     $goalietron->options[$key] = $value;
                 }
             }
+            
+            error_log('GoalieTron Widget - Options after instance: ' . print_r($goalietron->options, true));
+        } else {
+            error_log('GoalieTron Widget - Instance is empty, using global settings');
         }
         
         $goalietron->DisplayWidget($args);

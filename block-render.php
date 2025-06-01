@@ -19,21 +19,31 @@ if (!defined('ABSPATH')) {
  * @return string The rendered block HTML
  */
 function goalietron_block_render_callback($attributes, $content) {
-    // Get the GoalieTron instance
-    $goalietron = GoalieTron::Instance();
+    // Create a new isolated GoalieTron instance with custom options
+    // This avoids loading cache from database that might conflict
+    $default_options = array(
+        'patreon_userid' => '',
+        'design' => 'default',
+        'cache' => '',
+        'cache_only' => 'no', 
+        'cache_age' => 0,
+        'title' => '',
+        'metercolor' => 'green',
+        'toptext' => '',
+        'bottomtext' => '',
+        'showgoaltext' => 'true',
+        'showbutton' => 'false',
+        'goal_mode' => 'legacy',
+        'custom_goal_id' => '',
+        'patreon_username' => ''
+    );
     
-    // Save original options to restore later
-    $original_options = $goalietron->options;
+    // Merge attributes with defaults
+    $block_options = array_merge($default_options, $attributes);
     
-    // Apply block attributes to the GoalieTron options
-    $block_options = wp_parse_args($attributes, $goalietron->options);
+    // Create isolated instance
+    $block_goalietron = GoalieTron::CreateInstance($block_options);
     
-    // Override the options temporarily
-    foreach ($block_options as $key => $value) {
-        if (array_key_exists($key, $goalietron->options)) {
-            $goalietron->options[$key] = $value;
-        }
-    }
     
     // Prepare widget args to simulate widget environment
     $widget_args = array(
@@ -43,13 +53,10 @@ function goalietron_block_render_callback($attributes, $content) {
         'after_title' => '</h2>'
     );
     
-    // Capture the widget output
+    // Capture the widget output using the isolated instance
     ob_start();
-    $goalietron->DisplayWidget($widget_args);
+    $block_goalietron->DisplayWidget($widget_args);
     $output = ob_get_clean();
-    
-    // Restore original options
-    $goalietron->options = $original_options;
     
     return $output;
 }

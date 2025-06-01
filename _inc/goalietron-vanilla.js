@@ -153,45 +153,66 @@ function ready(fn) {
 }
 
 ready(function() {
-    if (typeof PatreonData !== 'undefined' && typeof PatreonData['data'] === "object")
-    {
-        var campaignData = GoalieTron.GetCampaign();
-        var goalData = GoalieTron.GetActiveGoal();
-        if (!goalData)
-        {
-            goalData = GoalieTron.CreateDummyGoal(campaignData);
-        }
-
-        // Calculate percentage differently for count-based vs income goals
-        var goalperc;
-        var isCountGoal = goalData && goalData.goal_type && 
-                         (goalData.goal_type === 'patrons' || goalData.goal_type === 'members' || goalData.goal_type === 'posts');
+    // Find all GoalieTron script tags and process each one
+    var scripts = document.querySelectorAll('script[data-widget-id]');
+    
+    for (var i = 0; i < scripts.length; i++) {
+        var script = scripts[i];
+        var widgetId = script.getAttribute('data-widget-id');
+        var patreonDataVar = widgetId + '_PatreonData';
+        var showGoalTextVar = widgetId + '_ShowGoalText';
         
-        if (isCountGoal) {
-            // For count goals, use actual counts for percentage calculation
-            var currentCount = 0;
-            var targetCount = Math.floor(goalData.amount_cents / 100);
-            
-            if (goalData.goal_type === 'patrons') {
-                currentCount = campaignData.patron_count || 0;
-            } else if (goalData.goal_type === 'members') {
-                currentCount = campaignData.paid_member_count || 0;
-            } else if (goalData.goal_type === 'posts') {
-                currentCount = campaignData.creation_count || 0;
-            }
-            
-            goalperc = Math.floor((currentCount / targetCount) * 100.0);
-        } else {
-            // For income goals, use pledge_sum vs amount_cents
-            goalperc = Math.floor((campaignData.pledge_sum / goalData.amount_cents) * 100.0);
-        }
+        // Get the PatreonData for this specific widget
+        var PatreonData = window[patreonDataVar];
+        var GoalieTronShowGoalText = window[showGoalTextVar];
         
-        var percentageElement = document.getElementById("goalietron_percentage");
-        if (percentageElement) {
-            percentageElement.value = goalperc;
-        }
         
-        GoalieTron.GoalTextFromTo(campaignData, goalData);
-        GoalieTron.ShowGoalProgress(goalperc)
+        if (typeof PatreonData !== 'undefined' && typeof PatreonData['data'] === "object") {
+            processGoalieTronWidget(PatreonData, GoalieTronShowGoalText, widgetId);
+        }
     }
 });
+
+function processGoalieTronWidget(PatreonData, GoalieTronShowGoalText, widgetId) {
+    // Set the current PatreonData globally for the GoalieTron functions
+    window.PatreonData = PatreonData;
+    window.GoalieTronShowGoalText = GoalieTronShowGoalText;
+    
+    var campaignData = GoalieTron.GetCampaign();
+    var goalData = GoalieTron.GetActiveGoal();
+    if (!goalData) {
+        goalData = GoalieTron.CreateDummyGoal(campaignData);
+    }
+
+    // Calculate percentage differently for count-based vs income goals
+    var goalperc;
+    var isCountGoal = goalData && goalData.goal_type && 
+                     (goalData.goal_type === 'patrons' || goalData.goal_type === 'members' || goalData.goal_type === 'posts');
+    
+    if (isCountGoal) {
+        // For count goals, use actual counts for percentage calculation
+        var currentCount = 0;
+        var targetCount = Math.floor(goalData.amount_cents / 100);
+        
+        if (goalData.goal_type === 'patrons') {
+            currentCount = campaignData.patron_count || 0;
+        } else if (goalData.goal_type === 'members') {
+            currentCount = campaignData.paid_member_count || 0;
+        } else if (goalData.goal_type === 'posts') {
+            currentCount = campaignData.creation_count || 0;
+        }
+        
+        goalperc = Math.floor((currentCount / targetCount) * 100.0);
+    } else {
+        // For income goals, use pledge_sum vs amount_cents
+        goalperc = Math.floor((campaignData.pledge_sum / goalData.amount_cents) * 100.0);
+    }
+    
+    var percentageElement = document.getElementById("goalietron_percentage");
+    if (percentageElement) {
+        percentageElement.value = goalperc;
+    }
+    
+    GoalieTron.GoalTextFromTo(campaignData, goalData);
+    GoalieTron.ShowGoalProgress(goalperc);
+}
