@@ -639,6 +639,18 @@ function register_goalietron_block() {
 // Hook block registration
 add_action('init', 'register_goalietron_block');
 
+// Enqueue editor-specific assets
+function goalietron_enqueue_block_editor_assets() {
+    // Load default CSS in editor for proper visual preview
+    wp_enqueue_style(
+        'goalietron-editor-style',
+        plugin_dir_url(__FILE__) . '_inc/goalietron_default.css',
+        array(),
+        filemtime(plugin_dir_path(__FILE__) . '_inc/goalietron_default.css')
+    );
+}
+add_action('enqueue_block_editor_assets', 'goalietron_enqueue_block_editor_assets');
+
 // Add block category if needed
 function goalietron_block_categories($categories) {
     // Check if our category already exists
