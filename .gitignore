@@ -27,3 +27,6 @@ wp-config.php
 *.bak
 *.old
 *~
+
+# Removed scripts (use Makefile instead)
+test.sh

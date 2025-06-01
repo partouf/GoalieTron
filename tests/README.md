@@ -7,9 +7,6 @@ This directory contains automated tests for the GoalieTron WordPress plugin that
 ### Quick Start
 ```bash
 # Run all tests
-./test.sh
-
-# Or use make
 make test
 ```
 
