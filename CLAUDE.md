@@ -4,42 +4,50 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-GoalieTron is a WordPress widget plugin that displays Patreon pledge goals and progress. It fetches data from Patreon's public API and displays it with customizable themes and animations.
+GoalieTron is a WordPress block plugin that displays Patreon pledge goals and progress. It uses public data scraping and custom goals for tracking progress with customizable themes and animations. Legacy Patreon API v1 functionality has been removed due to authentication requirements.
 
 ## Architecture
 
 ### Plugin Structure
 - `goalietron.php` - Main plugin file containing the `GoalieTron` class with all server-side logic
+- `block-render.php` - WordPress block render callback for Gutenberg editor
 - `_inc/` - Frontend assets (JavaScript and CSS files)
 - `views/` - HTML templates using `{variable}` placeholders for rendering
+- `tests/` - Comprehensive test suite with mock WordPress environment
+- `PatreonClient.php` - Standalone class for Patreon data and custom goals
+- `patreon-cli.php` - Command-line interface for goal management
+- `patreon-goals.json` - Custom goals configuration file
 - No build system - all assets are pre-built and ready to use
 
 ### Key Patterns
-1. **WordPress Widget API** - Plugin registers as a sidebar widget
+1. **WordPress Block API** - Plugin registers as a Gutenberg block (legacy widget support removed)
 2. **Template System** - HTML templates with string replacement (`{variable_name}` → actual values)
-3. **Caching** - 60-second cache for Patreon API responses stored in WordPress options
-4. **Progressive Enhancement** - jQuery animations enhance basic HTML/CSS display
+3. **Caching** - 60-second cache for public data scraping stored in WordPress options
+4. **Vanilla JavaScript** - No jQuery dependency, pure JavaScript handles DOM updates and animations
+5. **Custom Goals** - User-defined goals with progress tracking using public Patreon data
 
 ### Data Flow
-**Legacy Mode (Patreon API v1):**
-1. PHP fetches JSON from `https://api.patreon.com/user/{id}` (deprecated, requires auth)
-2. Raw JSON is cached and passed to frontend
-3. JavaScript (`goalietron.js`) parses JSON and updates DOM
-4. Progress bar animations trigger on page load
-
-**Custom Goals Mode (Public Data):**
+**Current Implementation (Custom Goals Only):**
 1. PHP scrapes public data from `https://patreon.com/{username}/about`
 2. Custom goals are managed via CLI and stored in `patreon-goals.json`
 3. Goal progress is calculated using public patron/member/post counts
-4. Data is transformed to match legacy API format for frontend compatibility
+4. Data is transformed to legacy API format for frontend compatibility
+5. Vanilla JavaScript parses JSON and updates DOM with animations
+
+**Block Rendering:**
+1. WordPress calls `register_block_type()` with `block-render.php` callback
+2. Block attributes passed to `GoalieTron::CreateInstance()`
+3. Template variables replaced with actual values (`{patreon_username}` etc.)
+4. Unique widget IDs prevent conflicts between multiple blocks
 
 ## Development Notes
 
 ### Working with Templates
 Templates in `/views/` use simple string replacement. Variables available:
-- Widget config: `{title}`, `{toptext}`, `{bottomtext}`, `{patreonid}`
+- Widget config: `{title}`, `{toptext}`, `{bottomtext}`, `{patreon_username}`
 - Design options: `{goalcolor}`, `{hasstripes}`
-- Patreon data: Passed as raw JSON to JavaScript
+- Button: `{goalietron_button}` replaced with `button.html` content when `showbutton` enabled
+- Patreon data: Passed as raw JSON to JavaScript with unique variable names per widget
 
 ### CSS Themes
 Each design has its own CSS file (`goalietron_{theme}.css`). Themes include:
@@ -49,62 +57,55 @@ Each design has its own CSS file (`goalietron_{theme}.css`). Themes include:
 All plugin options are prefixed with `goalietron_`. The widget stores its configuration as a serialized array in the database.
 
 ### API Integration
-**Legacy Mode:** Direct HTTP calls to Patreon's API v1 (deprecated, requires authentication).
-**Custom Goals Mode:** Scrapes public data from Patreon about pages - no authentication required. If scraping fails, uses cached data if available.
+**Current Implementation:** Scrapes public data from Patreon about pages - no authentication required. If scraping fails, uses cached data if available. Legacy API v1 support has been completely removed.
 
 ## Refactored Components
 
 ### PatreonClient Class
-The Patreon functionality has been extracted into a standalone `PatreonClient.php` class that can be used independently:
+The Patreon functionality has been extracted into a standalone `PatreonClient.php` class that can be used independently. Legacy API v1 methods have been removed.
 
-**Legacy API Methods:**
-- `getUserData($userId, $useCache)` - Returns decoded JSON data as array
-- `getUserDataRaw($userId, $useCache)` - Returns raw JSON string 
-- `getUserIdFromUsername($username)` - Converts username to user ID
-- `setCacheTimeout($seconds)` - Configure cache duration
-- `clearCache($userId)` - Clear cache for specific user or all users
-
-**Custom Goals Methods:**
+**Public Data Methods:**
 - `getPublicCampaignData($username, $useCache)` - Scrapes public data from Patreon about page
 - `getCampaignDataWithGoals($username, $useCache)` - Returns campaign data with custom goals
+- `setCacheTimeout($seconds)` - Configure cache duration
+- `setFetchTimeout($seconds)` - Configure HTTP request timeout
+
+**Custom Goals Methods:**
 - `createCustomGoal($id, $type, $target, $title)` - Create a new custom goal
 - `removeCustomGoal($id)` - Delete a custom goal
 - `getCustomGoals()` - Get all custom goals
-- `calculateGoalProgress($goalData, $campaignData)` - Calculate goal completion percentage
+- `calculateGoalProgress($username, $goalId, $useCache)` - Calculate goal completion percentage
+- `loadCustomGoalsFromFile($filePath)` - Load goals from JSON file
+- `saveCustomGoalsToFile($filePath)` - Save goals to JSON file
 
 ### CLI Application
-A command-line interface `patreon-cli.php` provides direct access to Patreon functionality:
+A command-line interface `patreon-cli.php` provides direct access to Patreon functionality. Legacy API commands have been removed.
 
-**Legacy API Commands:**
-```bash
-php patreon-cli.php user 123456           # Get user data
-php patreon-cli.php username someuser     # Convert username to ID
-php patreon-cli.php goal 123456           # Get goal information
-php patreon-cli.php cache clear           # Clear cache
-```
-
-**Custom Goals Commands:**
+**Available Commands:**
 ```bash
 php patreon-cli.php public scishow        # Get public campaign data
-php patreon-cli.php goals                 # List all custom goals
+php patreon-cli.php goals scishow         # Get campaign data with custom goal progress
 php patreon-cli.php goal-add my-goal patrons 1000 "My Goal"  # Create goal
 php patreon-cli.php goal-remove my-goal   # Delete goal
-php patreon-cli.php goal-list             # List goals with progress
+php patreon-cli.php goal-list             # List all custom goals
 ```
 
-The CLI supports `--format=json`, `--no-cache`, and `--timeout=N` options.
+The CLI supports `--format=json`, `--no-cache`, and `--timeout=N` options. Goals are automatically saved to and loaded from `patreon-goals.json`.
 
 ### WordPress Integration
-The main plugin (`goalietron.php`) now supports two modes:
+The main plugin (`goalietron.php`) is now block-only with custom goals support:
 
-**Legacy Mode:** Uses `patreon_userid` to fetch data from deprecated API v1
-**Custom Goals Mode:** Uses `patreon_username` and `custom_goal_id` to track custom goals
+**Block Registration:**
+- Registers as `goalietron/goalietron-block` in the "widgets" category
+- Uses `block-render.php` for server-side rendering
+- No longer supports legacy widget API
 
-Widget options include:
-- `goal_mode` - Switch between "legacy" and "custom" modes
+**Block Attributes:**
 - `patreon_username` - Patreon username for public data scraping
-- `custom_goal_id` - Selected custom goal ID
-- All existing options (design, colors, text) work with both modes
+- `custom_goal_id` - Selected custom goal ID from patreon-goals.json
+- `showbutton` - Whether to display "Become a Patron!" button
+- `goal_mode` - Defaults to "custom" (legacy mode removed)
+- All existing options (design, colors, text) still available
 
 ### Frontend JavaScript (`goalietron.js`)
 Enhanced to handle different goal types:
@@ -202,3 +203,69 @@ Patreon's public about pages contain JSON data with:
 - Campaign name and other metadata
 
 This data is extracted via regex parsing and cached for performance.
+
+## Testing Framework
+
+### Comprehensive Test Suite
+The plugin includes a robust testing framework in `/tests/` directory:
+
+**Core Test Files:**
+- `test-runner.php` - Main test suite with all functional tests
+- `test-html-output.php` - HTML structure validation tests
+- `mock-wordpress.php` - Complete WordPress environment simulation
+
+**Mock WordPress Environment:**
+- Fully functional `add_action()` and `add_filter()` with validation
+- Asset registration validation (`wp_register_script`, `wp_register_style`)
+- Block registration validation (`register_block_type`)
+- File existence checking for all registered assets
+- Action/filter execution simulation with `do_action()` and `apply_filters()`
+
+**Test Coverage:**
+1. **Block Rendering** - Basic widget output and structure
+2. **Custom Goal Mode** - Goal data loading and display
+3. **Multiple Blocks** - Unique widget ID generation to prevent conflicts
+4. **Design Themes** - All 6 theme variations (default, fancy, minimal, etc.)
+5. **Block Categories** - WordPress block category filter functionality
+6. **Button Display** - Patron button enabled/disabled states with username links
+7. **HTML Structure** - Comprehensive output validation and data extraction
+
+**Running Tests:**
+```bash
+make test              # Run full test suite
+php tests/test-runner.php        # Run functional tests only
+php tests/test-html-output.php   # Run HTML validation tests only
+```
+
+**Test Validation Features:**
+- File existence checking for CSS/JS assets before registration
+- WordPress hook parameter validation (empty tags, invalid priorities)
+- Block registration validation (editor scripts, styles, render callbacks)
+- HTML structure parsing and content verification
+- JavaScript variable uniqueness across multiple widget instances
+
+### Build System
+Simple Makefile with common development tasks:
+
+```bash
+make test              # Run all tests (syntax check + test suite)
+make syntax-check      # PHP syntax validation only
+```
+
+**Continuous Integration:**
+- GitHub Actions workflow for automated testing
+- PHP 7+ compatibility verification
+- Comprehensive test coverage reporting
+
+### Development Workflow
+1. **Make Changes** - Edit plugin files as needed
+2. **Run Tests** - `make test` to verify functionality
+3. **Check Output** - HTML output tests validate structure
+4. **Commit** - All tests must pass before committing
+
+**Test-Driven Features:**
+- Block categories filter (`goalietron_block_categories()`)
+- Button display with username-based URLs
+- Multiple widget isolation with unique IDs
+- WordPress hook validation and execution
+- Asset dependency checking
