@@ -71,30 +71,7 @@ function wp_parse_args($args, $defaults = '') {
     return $r;
 }
 
-// Mock WP_Widget class
-class WP_Widget {
-    public $id_base;
-    public $name;
-    public $widget_options;
-    public $control_options;
-    
-    public function __construct($id_base, $name, $widget_options = array(), $control_options = array()) {
-        $this->id_base = $id_base;
-        $this->name = $name;
-        $this->widget_options = $widget_options;
-        $this->control_options = $control_options;
-    }
-    
-    public function widget($args, $instance) {}
-    public function form($instance) {}
-    public function update($new_instance, $old_instance) { return $new_instance; }
-}
-
-// Mock WordPress widget registration
-function register_widget($widget_class) {
-    // Mock function - no-op for testing
-    return true;
-}
+// Widget functionality removed - GoalieTron is now block-only
 
 // Mock WordPress actions/filters
 $wp_actions = array();

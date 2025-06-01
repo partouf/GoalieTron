@@ -6,7 +6,7 @@
 [![WordPress](https://img.shields.io/badge/WordPress-4.7.2%2B-blue.svg)](https://wordpress.org/)
 [![License](https://img.shields.io/badge/License-GPLv2-green.svg)](LICENSE)
 
-A WordPress plugin that displays Patreon pledge goals and progress as a widget or block.
+A WordPress block plugin that displays Patreon pledge goals and progress.
 
 ## Features
 
@@ -24,19 +24,14 @@ A WordPress plugin that displays Patreon pledge goals and progress as a widget o
 1. Download the latest release from the [Releases page](https://github.com/partouf/GoalieTron/releases)
 2. Upload to your WordPress plugins directory
 3. Activate the plugin
-4. Add the GoalieTron widget or block to your site
+4. Add the GoalieTron block to your site
 
 ## Usage
 
-### As a Widget (Classic)
-1. Go to Appearance → Widgets
-2. Add the "GoalieTron Widget" to your sidebar
-3. Configure your Patreon username and goal settings
-
-### As a Block (Modern)
-1. Edit any page or post
-2. Add the "GoalieTron" block
-3. Configure settings in the block inspector
+1. Edit any page, post, or widget area
+2. Add the "GoalieTron" block from the block inserter
+3. Configure your Patreon username and goal settings in the block inspector
+4. Customize the appearance with different themes and colors
 
 ## Development
 

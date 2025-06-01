@@ -49,13 +49,13 @@ class GoalieTronTester {
     }
     
     private function test_basic_widget_rendering() {
-        echo "Test 1: Basic Widget Rendering\n";
+        echo "Test 1: Basic Block Rendering\n";
         
         reset_wp_options();
         
         $goalietron = new GoalieTron();
         $args = array(
-            'before_widget' => '<div class="widget">',
+            'before_widget' => '<div class="goalietron-block">',
             'after_widget' => '</div>',
             'before_title' => '<h2>',
             'after_title' => '</h2>'
@@ -65,7 +65,7 @@ class GoalieTronTester {
         $goalietron->DisplayWidget($args);
         $output = ob_get_clean();
         
-        $this->assert_contains($output, '<div class="widget">', 'Widget wrapper present');
+        $this->assert_contains($output, '<div class="goalietron-block">', 'Block wrapper present');
         $this->assert_contains($output, '_PatreonData', 'PatreonData variable present');
         $this->assert_contains($output, 'goalietron_meter', 'Progress meter present');
         
