@@ -23,6 +23,9 @@ class PatreonClient
     private $fetchTimeout = 3; // seconds
     private $cache = [];
     
+    // Offline/mocking mode for testing
+    private $offlineMode = false;
+    
     /**
      * Set the cache timeout in seconds
      * 
@@ -41,6 +44,27 @@ class PatreonClient
     public function setFetchTimeout($seconds)
     {
         $this->fetchTimeout = max(1, intval($seconds));
+    }
+    
+    /**
+     * Enable or disable offline/mocking mode
+     * When enabled, getPublicCampaignData() will return mocked data instead of making HTTP calls
+     * 
+     * @param bool $enabled
+     */
+    public function setOfflineMode($enabled = true)
+    {
+        $this->offlineMode = (bool)$enabled;
+    }
+    
+    /**
+     * Check if offline/mocking mode is enabled
+     * 
+     * @return bool
+     */
+    public function isOfflineMode()
+    {
+        return $this->offlineMode;
     }
     
     
@@ -68,6 +92,11 @@ class PatreonClient
             if (time() - $cachedData['timestamp'] <= $this->cacheTimeout) {
                 return $cachedData['data'];
             }
+        }
+        
+        // If offline mode is enabled, return mocked data instead of making HTTP calls
+        if ($this->offlineMode) {
+            return $this->getMockedCampaignData($username);
         }
         
         $url = self::PATREON_WEBSITE_URL . $username . '/about';
@@ -494,5 +523,44 @@ class PatreonClient
     {
         json_decode($string);
         return json_last_error() === JSON_ERROR_NONE;
+    }
+    
+    /**
+     * Generate mocked campaign data for offline/testing mode
+     * 
+     * @param string $username The username to generate mock data for
+     * @return array Mocked campaign data
+     */
+    private function getMockedCampaignData($username)
+    {
+        // Generate consistent mock data based on username
+        $hash = crc32($username);
+        $baseValue = $hash % 100;
+        
+        // Create deterministic mock data that varies by username
+        $mockData = [
+            'patron_count' => 10 + ($baseValue % 50),
+            'paid_member_count' => 5 + ($baseValue % 25),
+            'creation_count' => 20 + ($baseValue % 80),
+            'pledge_sum' => 5000 + ($baseValue * 100), // $50-$150 in cents
+            'campaign_name' => 'Mock Campaign for ' . $username,
+            'currency' => 'USD',
+            'earnings_visibility' => 'public',
+            'avatar_url' => 'https://example.com/avatar.jpg',
+            'cover_photo_url' => 'https://example.com/cover.jpg',
+            'is_monthly' => true,
+            'goals' => [],
+            'extracted_at' => time(),
+            'data_source' => 'mock_offline_mode'
+        ];
+        
+        // Update cache even in offline mode for consistency
+        $cacheKey = 'public_' . $username;
+        $this->cache[$cacheKey] = [
+            'timestamp' => time(),
+            'data' => $mockData
+        ];
+        
+        return $mockData;
     }
 }

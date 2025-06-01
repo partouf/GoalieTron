@@ -6,6 +6,9 @@
  * of user input and output to prevent security vulnerabilities.
  */
 
+// Enable testing mode to use offline/mocked data
+define('GOALIETRON_TESTING', true);
+
 // Set up the environment
 define('ABSPATH', dirname(__DIR__) . '/');
 define('WP_DEBUG', true);

@@ -5,6 +5,9 @@
  * This script tests specific HTML patterns and validates the output structure
  */
 
+// Enable testing mode to use offline/mocked data
+define('GOALIETRON_TESTING', true);
+
 require_once __DIR__ . '/mock-wordpress.php';
 require_once dirname(__DIR__) . '/PatreonClient.php';
 require_once dirname(__DIR__) . '/goalietron.php';

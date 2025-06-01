@@ -5,6 +5,9 @@
  * Usage: php tests/test-css-classes.php
  */
 
+// Enable testing mode to use offline/mocked data
+define('GOALIETRON_TESTING', true);
+
 // Load mock WordPress environment
 require_once __DIR__ . '/mock-wordpress.php';
 

@@ -5,6 +5,9 @@
  * Usage: php tests/test-runner.php
  */
 
+// Enable testing mode to use offline/mocked data
+define('GOALIETRON_TESTING', true);
+
 // Load mock WordPress environment
 require_once __DIR__ . '/mock-wordpress.php';
 
@@ -95,7 +98,7 @@ class GoalieTronTester extends GoalieTronTestBase {
         $custom_options = array(
             'goal_mode' => 'custom',
             'custom_goal_id' => 'patrons-10',
-            'patreon_username' => 'testuser',
+            'patreon_username' => '',
             'design' => 'streamlined',
             'toptext' => 'Support us!',
             'bottomtext' => 'Thank you!'
@@ -240,7 +243,7 @@ class GoalieTronTester extends GoalieTronTestBase {
             $options = array(
                 'goal_mode' => 'custom',
                 'custom_goal_id' => 'patrons-10',
-                'patreon_username' => 'testuser',
+                'patreon_username' => '',  // Empty username to use fallback data
                 'design' => $design
             );
             
@@ -328,7 +331,7 @@ class GoalieTronTester extends GoalieTronTestBase {
         $button_enabled_options = array(
             'goal_mode' => 'custom',
             'custom_goal_id' => 'patrons-10',
-            'patreon_username' => 'testcreator',
+            'patreon_username' => 'offline-test',
             'design' => 'default',
             'showbutton' => 'true',
             'toptext' => 'Support us!',
@@ -349,14 +352,14 @@ class GoalieTronTester extends GoalieTronTestBase {
         $output_with_button = ob_get_clean();
         
         $this->assert_contains($output_with_button, 'Become a Patron!', 'Button text present when enabled');
-        $this->assert_contains($output_with_button, 'https://www.patreon.com/testcreator', 'Button links to username when enabled');
+        $this->assert_contains($output_with_button, 'https://www.patreon.com/offline-test', 'Button links to username when enabled');
         $this->assert_contains($output_with_button, 'data-patreon-widget-type="become-patron-button"', 'Button has Patreon widget attributes');
         
         // Test case 2: Button disabled (default behavior)
         $button_disabled_options = array(
             'goal_mode' => 'custom',
             'custom_goal_id' => 'patrons-10',
-            'patreon_username' => 'testcreator',
+            'patreon_username' => 'offline-test',
             'design' => 'default',
             'showbutton' => 'false',
             'toptext' => 'Support us!',
@@ -370,7 +373,7 @@ class GoalieTronTester extends GoalieTronTestBase {
         $output_no_button = ob_get_clean();
         
         $this->assert_not_contains($output_no_button, 'Become a Patron!', 'Button text absent when disabled');
-        $this->assert_not_contains($output_no_button, 'https://www.patreon.com/testcreator', 'Button link absent when disabled');
+        $this->assert_not_contains($output_no_button, 'https://www.patreon.com/offline-test', 'Button link absent when disabled');
         
         echo "\n";
     }
@@ -392,7 +395,7 @@ class GoalieTronTester extends GoalieTronTestBase {
         $attributes = array(
             'goal_mode' => 'custom',
             'custom_goal_id' => 'patrons-10',
-            'patreon_username' => 'testuser',
+            'patreon_username' => '',
             'design' => 'default',
             'toptext' => 'Support us!',
             'bottomtext' => 'Thank you!'
@@ -460,7 +463,7 @@ class GoalieTronTester extends GoalieTronTestBase {
             'title' => $xss_title,
             'goal_mode' => 'custom',
             'custom_goal_id' => 'patrons-10',
-            'patreon_username' => 'testuser',
+            'patreon_username' => '',
             'design' => 'default',
             'toptext' => 'Normal text',
             'bottomtext' => 'Normal bottom'
@@ -476,7 +479,7 @@ class GoalieTronTester extends GoalieTronTestBase {
         $sql_injection = "patrons-10'; DROP TABLE goals; --";
         $attributes2 = array(
             'custom_goal_id' => $sql_injection,
-            'patreon_username' => 'testuser',
+            'patreon_username' => '',
             'design' => 'default'
         );
         
@@ -486,7 +489,7 @@ class GoalieTronTester extends GoalieTronTestBase {
         // Test 3: Invalid design value
         $attributes3 = array(
             'design' => '<script>alert("XSS")</script>',
-            'patreon_username' => 'testuser'
+            'patreon_username' => ''
         );
         
         $instance3 = GoalieTron::CreateInstance($attributes3);
@@ -497,7 +500,7 @@ class GoalieTronTester extends GoalieTronTestBase {
         $attributes4 = array(
             'toptext' => $html_injection,
             'goal_mode' => 'custom',
-            'patreon_username' => 'testuser'
+            'patreon_username' => ''
         );
         
         $output4 = goalietron_block_render_callback($attributes4, '');

@@ -17,6 +17,7 @@
  *   --no-cache            Don't use cache for this request
  *   --format=json|pretty  Output format (default: pretty)
  *   --timeout=<seconds>   Request timeout (default: 3)
+ *   --offline             Use offline/mocked data (for testing)
  */
 
 require_once __DIR__ . '/PatreonClient.php';
@@ -41,7 +42,8 @@ class PatreonCLI
         $this->options = [
             'format' => 'pretty',
             'cache' => true,
-            'timeout' => 3
+            'timeout' => 3,
+            'offline' => false
         ];
         
         // Skip script name
@@ -78,6 +80,11 @@ class PatreonCLI
         // Set timeout if specified
         if (isset($this->options['timeout'])) {
             $this->client->setFetchTimeout(intval($this->options['timeout']));
+        }
+        
+        // Enable offline mode if specified
+        if ($this->options['offline']) {
+            $this->client->setOfflineMode(true);
         }
         
         switch ($command) {

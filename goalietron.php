@@ -68,6 +68,12 @@ class GoalieTron
         $this->patreonClient = new PatreonClient();
         $this->patreonClient->setCacheTimeout(60);
         $this->patreonClient->setFetchTimeout(3);
+        
+        // Enable offline mode for testing environments
+        if (defined('GOALIETRON_TESTING') && GOALIETRON_TESTING === true) {
+            $this->patreonClient->setOfflineMode(true);
+        }
+        
         $this->loadCustomGoals();
         
         $this->LoadOptions();
