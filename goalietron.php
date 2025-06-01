@@ -255,18 +255,13 @@ class GoalieTron
         $username = $this->options['patreon_username'];
         $goalId = $this->options['custom_goal_id'];
         
-        error_log("GetCustomGoalData: username=$username, goalId=$goalId");
-        
         // Check cache first
         $cacheKey = 'custom_goal_' . $username . '_' . $goalId;
         $useCache = !empty($this->options['cache']) && (time() - $this->options['cache_age'] <= 60);
         
         if ($useCache && !empty($this->options['cache'])) {
-            error_log("GetCustomGoalData: Using cached data");
             return $this->options['cache'];
         }
-        
-        error_log("GetCustomGoalData: Fetching fresh data");
         
         // Get campaign data with custom goals
         $campaignData = $this->patreonClient->getCampaignDataWithGoals($username, true);

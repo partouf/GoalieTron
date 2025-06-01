@@ -1,0 +1,29 @@
+# IDE and system files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build artifacts
+*.zip
+!/assets.zip
+
+# Test artifacts
+tests/*.log
+tests/*.tmp
+tests/*.cache
+
+# Node modules (if any)
+node_modules/
+
+# Composer vendor (if any)
+vendor/
+
+# WordPress specific
+wp-config.php
+
+# Temporary files
+*.bak
+*.old
+*~
