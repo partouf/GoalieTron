@@ -62,9 +62,9 @@ class GoalieTronServerSideRenderingTester extends GoalieTronTestBase {
         $output = $this->getWidgetOutput($instance);
         
         // Should show progress bar with width > 0%
-        $this->assert_contains_regex($output, '/style="width: (\d+)%"/', 'Progress bar should have calculated width');
+        $this->assert_contains_regex($output, '/style="[^"]*width: (\d+)%/', 'Progress bar should have calculated width');
         
-        if (preg_match('/style="width: (\d+)%"/', $output, $matches)) {
+        if (preg_match('/style="[^"]*width: (\d+)%/', $output, $matches)) {
             $width = intval($matches[1]);
             $this->assert_greater_than($width, 0, 'Progress bar width should be greater than 0');
             $this->assert_less_than_or_equal($width, 100, 'Progress bar width should not exceed 100%');
@@ -72,7 +72,7 @@ class GoalieTronServerSideRenderingTester extends GoalieTronTestBase {
         
         // Test 2: Completed goal should show 100%
         // SciShow with patrons-25 should be completed (15,126 > 25)
-        if (preg_match('/style="width: (\d+)%"/', $output, $matches)) {
+        if (preg_match('/style="[^"]*width: (\d+)%/', $output, $matches)) {
             $width = intval($matches[1]);
             $this->assert_equals($width, 100, 'SciShow patrons-25 goal should show 100% (goal completed)');
         }
@@ -225,7 +225,7 @@ class GoalieTronServerSideRenderingTester extends GoalieTronTestBase {
             $this->assert_contains_regex($output, $test_config['expected_format'], "Goal type '$goal_type' should show correct format");
             
             // Check that progress bar has some width
-            $this->assert_contains_regex($output, '/style="width: \d+%"/', "Goal type '$goal_type' should have calculated progress width");
+            $this->assert_contains_regex($output, '/style="[^"]*width: \d+%/', "Goal type '$goal_type' should have calculated progress width");
         }
         
         echo "\n";
@@ -286,7 +286,7 @@ class GoalieTronServerSideRenderingTester extends GoalieTronTestBase {
         $output3 = $this->getWidgetOutput($instance3);
         
         // Should handle invalid JSON gracefully
-        $this->assert_contains($output3, 'style="width: 0%"', 'Invalid JSON should result in 0% progress');
+        $this->assert_contains_regex($output3, '/style="[^"]*width: 0%/', 'Invalid JSON should result in 0% progress');
         $this->assert_contains($output3, '<span class="goalietron_goalmoneytext"></span>', 'Invalid JSON should result in empty goal text');
         
         echo "\n";

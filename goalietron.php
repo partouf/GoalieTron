@@ -270,8 +270,13 @@ class GoalieTron
                                  '<span class="goalietron_goalmoneytext">' . esc_html($serverSideValues['goalText']) . '</span>', 
                                  $configView);
         $configView = str_replace('<span style="width: 0%"></span>', 
-                                 '<span style="width: ' . esc_attr($serverSideValues['progressPercent']) . '%"></span>', 
+                                 '<span style="width: ' . esc_attr($serverSideValues['progressPercent']) . '%; display: block; height: 100%; background-color: #2bc253; border-radius: 4px;"></span>', 
                                  $configView);
+        
+        // Add inline styles for WordPress editor compatibility (ensures progress bar is visible)
+        $configView = preg_replace('/<div class="meter([^"]*goalietron_meter[^"]*)"[^>]*>/', 
+                                  '<div class="meter$1" style="height: 8px; background: #f2f4f5; border-radius: 4px; position: relative;">', 
+                                  $configView);
 
         echo "<div>";
         echo $configView;
