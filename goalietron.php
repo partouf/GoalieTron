@@ -239,7 +239,12 @@ class GoalieTron
 
         foreach ($this->options as $option_name => $option_value) {
             // Escape output based on context - most template variables are used in HTML context
-            $escaped_value = esc_html($option_value);
+            // Don't escape certain fields that need raw output
+            if (in_array($option_name, array('cache', 'cache_age', 'cache_only'))) {
+                $escaped_value = $option_value;
+            } else {
+                $escaped_value = esc_html($option_value);
+            }
             $configView = str_replace("{" . $option_name . "}", $escaped_value, $configView);
         }
 

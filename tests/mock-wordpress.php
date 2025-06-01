@@ -1,6 +1,11 @@
 <?php
 /**
  * Mock WordPress environment for testing GoalieTron outside of WordPress
+ * 
+ * Updated to match WordPress core behavior for:
+ * - esc_html() - Escapes content for safe HTML output
+ * - esc_attr() - Escapes content for HTML attributes
+ * - sanitize_text_field() - Sanitizes string from user input or database
  */
 
 // Define WordPress constants
@@ -396,11 +401,17 @@ function has_action($tag, $function_to_check = false) {
 
 // Mock other functions that might be needed
 function esc_attr($text) {
-    return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
+    // Match WordPress core behavior
+    $safe_text = wp_check_invalid_utf8($text);
+    $safe_text = _wp_specialchars($safe_text, ENT_QUOTES);
+    return apply_filters('esc_attr', $safe_text, $text);
 }
 
 function esc_html($text) {
-    return htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
+    // Match WordPress core behavior
+    $safe_text = wp_check_invalid_utf8($text);
+    $safe_text = _wp_specialchars($safe_text, ENT_QUOTES);
+    return apply_filters('esc_html', $safe_text, $text);
 }
 
 function __($text, $domain = 'default') {
@@ -530,7 +541,133 @@ function register_block_type($block_type, $args = array()) {
 }
 
 function sanitize_text_field($str) {
-    return trim(strip_tags($str));
+    // Match WordPress core behavior
+    $filtered = _sanitize_text_fields($str, false);
+    return apply_filters('sanitize_text_field', $filtered, $str);
+}
+
+/**
+ * Internal helper function used by sanitize_text_field() and sanitize_textarea_field()
+ * Matches WordPress core behavior from formatting.php
+ */
+function _sanitize_text_fields($str, $keep_newlines = false) {
+    if (is_object($str) || is_array($str)) {
+        return '';
+    }
+
+    $str = (string) $str;
+
+    $filtered = wp_check_invalid_utf8($str);
+
+    if (strpos($filtered, '<') !== false) {
+        $filtered = wp_pre_kses_less_than($filtered);
+        // This will strip extra whitespace for us.
+        $filtered = wp_strip_all_tags($filtered, false);
+
+        // Use HTML entities in a special case to make sure that
+        // later newline stripping stages cannot lead to a functional tag.
+        $filtered = str_replace("<\n", "&lt;\n", $filtered);
+    }
+
+    if (!$keep_newlines) {
+        $filtered = preg_replace('/[\r\n\t ]+/', ' ', $filtered);
+    }
+    $filtered = trim($filtered);
+
+    // Remove percent-encoded characters.
+    $found = false;
+    while (preg_match('/%[a-f0-9]{2}/i', $filtered, $match)) {
+        $filtered = str_replace($match[0], '', $filtered);
+        $found = true;
+    }
+
+    if ($found) {
+        // Strip out the whitespace that may now exist after removing percent-encoded characters.
+        $filtered = trim(preg_replace('/ +/', ' ', $filtered));
+    }
+
+    return $filtered;
+}
+
+/**
+ * WordPress core _wp_specialchars function
+ * Converts special characters to HTML entities
+ */
+function _wp_specialchars($text, $quote_style = ENT_NOQUOTES, $charset = false, $double_encode = false) {
+    $text = (string) $text;
+
+    if (0 === strlen($text)) {
+        return '';
+    }
+
+    // Don't bother if there are no specialchars - saves some processing.
+    if (!preg_match('/[&<>"\']/', $text)) {
+        return $text;
+    }
+
+    // For testing, default to UTF-8
+    if (!$charset) {
+        $charset = 'UTF-8';
+    }
+
+    if (!$double_encode) {
+        // Decode existing entities first to avoid double encoding
+        $text = html_entity_decode($text, $quote_style, $charset);
+    }
+
+    $text = htmlspecialchars($text, $quote_style, $charset, $double_encode);
+
+    return $text;
+}
+
+/**
+ * Check for invalid UTF-8 string
+ */
+function wp_check_invalid_utf8($text, $strip = false) {
+    $text = (string) $text;
+    
+    if (0 === strlen($text)) {
+        return '';
+    }
+
+    // Check for invalid UTF-8
+    if (!mb_check_encoding($text, 'UTF-8')) {
+        if ($strip) {
+            return '';
+        } else {
+            return mb_convert_encoding($text, 'UTF-8', 'UTF-8');
+        }
+    }
+
+    return $text;
+}
+
+/**
+ * Convert lone less than signs
+ */
+function wp_pre_kses_less_than($text) {
+    return preg_replace_callback('/<[^>]*?((?=<)|>|$)/', 'wp_pre_kses_less_than_callback', $text);
+}
+
+function wp_pre_kses_less_than_callback($matches) {
+    if (false === strpos($matches[0], '>')) {
+        return esc_html($matches[0]);
+    }
+    return $matches[0];
+}
+
+/**
+ * Properly strip all HTML tags including script and style
+ */
+function wp_strip_all_tags($text, $remove_breaks = false) {
+    $text = preg_replace('@<(script|style)[^>]*?>.*?</\\1>@si', '', $text);
+    $text = strip_tags($text);
+
+    if ($remove_breaks) {
+        $text = preg_replace('/[\r\n\t ]+/', ' ', $text);
+    }
+
+    return trim($text);
 }
 
 function get_block_wrapper_attributes($args = array()) {

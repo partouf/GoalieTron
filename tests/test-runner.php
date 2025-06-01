@@ -47,6 +47,9 @@ class GoalieTronTester {
         // Block CSS class handling
         $this->test_block_css_classes();
         
+        // Security tests
+        $this->test_security();
+        
         // Summary
         echo "\n============================\n";
         echo "Test Summary:\n";
@@ -441,6 +444,69 @@ class GoalieTronTester {
                 'Block.json supports customClassName'
             );
         }
+        
+        echo "\n";
+    }
+    
+    private function test_security() {
+        echo "Security (XSS/Injection Prevention)\n";
+        
+        reset_wp_state();
+        
+        // Simulate WordPress initialization
+        simulate_wp_init();
+        
+        // Include the block render callback
+        require_once dirname(__DIR__) . '/block-render.php';
+        
+        // Test 1: XSS in title
+        $xss_title = '<script>alert("XSS")</script>My Widget';
+        $attributes = array(
+            'title' => $xss_title,
+            'goal_mode' => 'custom',
+            'custom_goal_id' => 'patrons-10',
+            'patreon_username' => 'testuser',
+            'design' => 'default',
+            'toptext' => 'Normal text',
+            'bottomtext' => 'Normal bottom'
+        );
+        
+        $output = goalietron_block_render_callback($attributes, '');
+        
+        $this->assert_not_contains($output, '<script>alert("XSS")</script>', 'Script tag should be stripped from title');
+        // With proper WordPress sanitization, the script tag and its content are completely removed
+        $this->assert_contains($output, '<h2 class="widget-title">My Widget', 'Title should be sanitized to safe content only');
+        
+        // Test 2: SQL injection in custom_goal_id
+        $sql_injection = "patrons-10'; DROP TABLE goals; --";
+        $attributes2 = array(
+            'custom_goal_id' => $sql_injection,
+            'patreon_username' => 'testuser',
+            'design' => 'default'
+        );
+        
+        $instance = GoalieTron::CreateInstance($attributes2);
+        $this->assert_equals($instance->options['custom_goal_id'], 'patrons-10DROPTABLEgoals--', 'SQL injection characters removed');
+        
+        // Test 3: Invalid design value
+        $attributes3 = array(
+            'design' => '<script>alert("XSS")</script>',
+            'patreon_username' => 'testuser'
+        );
+        
+        $instance3 = GoalieTron::CreateInstance($attributes3);
+        $this->assert_equals($instance3->options['design'], 'default', 'Invalid design defaults to safe value');
+        
+        // Test 4: XSS in toptext
+        $html_injection = '<img src=x onerror="alert(\'XSS\')">';
+        $attributes4 = array(
+            'toptext' => $html_injection,
+            'goal_mode' => 'custom',
+            'patreon_username' => 'testuser'
+        );
+        
+        $output4 = goalietron_block_render_callback($attributes4, '');
+        $this->assert_not_contains($output4, '<img src=x onerror=', 'Image XSS stripped from output');
         
         echo "\n";
     }
