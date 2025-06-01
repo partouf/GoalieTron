@@ -5,14 +5,15 @@
 # Default target
 help:
 	@echo "GoalieTron Test Commands:"
-	@echo "  make test        - Run all tests"
+	@echo "  make test        - Run all tests (syntax + functionality)"
+	@echo "  make syntax-check - Check PHP syntax only"
 	@echo "  make test-basic  - Run basic functionality tests"
 	@echo "  make test-html   - Run HTML output validation tests"
 	@echo "  make clean       - Clean up test artifacts"
 	@echo "  make package     - Create plugin zip file"
 
 # Run all tests
-test: test-basic test-html
+test: syntax-check test-basic test-html
 
 # Run basic tests
 test-basic:
@@ -43,10 +44,15 @@ package:
 	@bash package.sh
 	@echo "Package created: goalietron-plugin.zip"
 
-# Quick test - just verify the plugin loads without errors
-quick-test:
-	@echo "Quick syntax check..."
-	@php -l goalietron.php
-	@php -l PatreonClient.php
-	@php -l block-render.php
+# Syntax check all PHP files
+syntax-check:
+	@echo "Checking PHP syntax..."
+	@php -l goalietron.php > /dev/null && echo "  ✓ goalietron.php"
+	@php -l PatreonClient.php > /dev/null && echo "  ✓ PatreonClient.php"
+	@php -l block-render.php > /dev/null && echo "  ✓ block-render.php"
+	@php -l patreon-cli.php > /dev/null && echo "  ✓ patreon-cli.php"
 	@echo "✓ All PHP files have valid syntax"
+	@echo ""
+
+# Quick test - just verify the plugin loads without errors
+quick-test: syntax-check

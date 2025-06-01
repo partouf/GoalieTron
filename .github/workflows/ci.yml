@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [ '**' ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        php-version: ['7.4', '8.1']
+    
+    name: PHP ${{ matrix.php-version }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-version }}
+        coverage: none
+    
+    - name: Validate PHP syntax
+      run: make syntax-check
+    
+    - name: Run tests
+      run: make test
+    
+    - name: Build package (verification only)
+      run: make package
