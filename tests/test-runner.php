@@ -44,6 +44,9 @@ class GoalieTronTester {
         // Button display
         $this->test_button_display();
         
+        // Block CSS class handling
+        $this->test_block_css_classes();
+        
         // Summary
         echo "\n============================\n";
         echo "Test Summary:\n";
@@ -370,6 +373,74 @@ class GoalieTronTester {
         
         $this->assert_not_contains($output_no_button, 'Become a Patron!', 'Button text absent when disabled');
         $this->assert_not_contains($output_no_button, 'https://www.patreon.com/testcreator', 'Button link absent when disabled');
+        
+        echo "\n";
+    }
+    
+    private function test_block_css_classes() {
+        echo "Block CSS Class Handling\n";
+        
+        reset_wp_state();
+        
+        // Simulate WordPress initialization to register blocks
+        simulate_wp_init();
+        
+        // Include the block render callback
+        require_once dirname(__DIR__) . '/block-render.php';
+        
+        // Test case 1: Default classes without custom className
+        reset_mock_block_custom_class();
+        
+        $attributes = array(
+            'goal_mode' => 'custom',
+            'custom_goal_id' => 'patrons-10',
+            'patreon_username' => 'testuser',
+            'design' => 'default',
+            'toptext' => 'Support us!',
+            'bottomtext' => 'Thank you!'
+        );
+        
+        $output = goalietron_block_render_callback($attributes, '');
+        
+        $this->assert_contains($output, 'class="widget goalietron_widget"', 'Default classes present without custom className');
+        $this->assert_contains($output, 'Support us!', 'Block content rendered correctly');
+        
+        // Test case 2: Custom CSS class added from editor
+        set_mock_block_custom_class('my-custom-class');
+        
+        $output_with_custom = goalietron_block_render_callback($attributes, '');
+        
+        $this->assert_contains($output_with_custom, 'widget goalietron_widget', 'Default classes still present with custom className');
+        $this->assert_contains($output_with_custom, 'my-custom-class', 'Custom CSS class from editor included');
+        $this->assert_contains($output_with_custom, 'class="widget goalietron_widget my-custom-class"', 'All classes properly combined');
+        
+        // Test case 3: Multiple custom classes
+        set_mock_block_custom_class('class-one class-two custom-style');
+        
+        $output_multiple = goalietron_block_render_callback($attributes, '');
+        
+        $this->assert_contains($output_multiple, 'widget goalietron_widget', 'Default classes preserved with multiple custom classes');
+        $this->assert_contains($output_multiple, 'class-one class-two custom-style', 'Multiple custom classes included');
+        $this->assert_contains($output_multiple, 'class="widget goalietron_widget class-one class-two custom-style"', 'All classes properly combined with multiple custom classes');
+        
+        // Test case 4: Empty custom class (edge case)
+        set_mock_block_custom_class('');
+        
+        $output_empty = goalietron_block_render_callback($attributes, '');
+        
+        $this->assert_contains($output_empty, 'class="widget goalietron_widget"', 'Default classes only when custom class is empty');
+        $this->assert_not_contains($output_empty, 'class="widget goalietron_widget "', 'No trailing space when custom class is empty');
+        
+        // Test case 5: Block supports customClassName (verify block.json configuration)
+        $block_json_path = dirname(__DIR__) . '/block.json';
+        if (file_exists($block_json_path)) {
+            $block_json = json_decode(file_get_contents($block_json_path), true);
+            $this->assert_equals(
+                isset($block_json['supports']['customClassName']) && $block_json['supports']['customClassName'] === true, 
+                true, 
+                'Block.json supports customClassName'
+            );
+        }
         
         echo "\n";
     }

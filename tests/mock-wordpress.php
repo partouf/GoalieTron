@@ -533,6 +533,31 @@ function sanitize_text_field($str) {
     return trim(strip_tags($str));
 }
 
+function get_block_wrapper_attributes($args = array()) {
+    // Mock implementation of get_block_wrapper_attributes
+    $attributes = array();
+    
+    // Handle class attribute
+    if (isset($args['class'])) {
+        $attributes['class'] = $args['class'];
+    }
+    
+    // Mock custom class name support
+    global $mock_block_custom_class;
+    if (!empty($mock_block_custom_class)) {
+        $existing_class = isset($attributes['class']) ? $attributes['class'] : '';
+        $attributes['class'] = trim($existing_class . ' ' . $mock_block_custom_class);
+    }
+    
+    // Convert attributes array to string
+    $attr_string = '';
+    foreach ($attributes as $key => $value) {
+        $attr_string .= $key . '="' . esc_attr($value) . '"';
+    }
+    
+    return $attr_string;
+}
+
 // Helper function to reset options for testing
 function reset_wp_options() {
     global $wp_options;
@@ -561,6 +586,7 @@ function reset_wp_state() {
     reset_wp_options();
     reset_wp_assets();
     reset_wp_actions();
+    reset_mock_block_custom_class();
 }
 
 // Helper function to simulate WordPress initialization for testing
@@ -591,6 +617,18 @@ function get_action_done_count($tag) {
 function set_test_option($name, $value) {
     global $wp_options;
     $wp_options[$name] = $value;
+}
+
+// Helper function to set custom block CSS class for testing
+function set_mock_block_custom_class($class_name) {
+    global $mock_block_custom_class;
+    $mock_block_custom_class = $class_name;
+}
+
+// Helper function to reset custom block CSS class for testing
+function reset_mock_block_custom_class() {
+    global $mock_block_custom_class;
+    $mock_block_custom_class = '';
 }
 
 // Helper functions to get asset registration state for testing

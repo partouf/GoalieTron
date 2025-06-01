@@ -45,9 +45,14 @@ function goalietron_block_render_callback($attributes, $content) {
     $block_goalietron = GoalieTron::CreateInstance($block_options);
     
     
+    // Get block wrapper attributes including custom CSS classes
+    $wrapper_attributes = get_block_wrapper_attributes(array(
+        'class' => 'widget goalietron_widget'
+    ));
+    
     // Prepare widget args to simulate widget environment
     $widget_args = array(
-        'before_widget' => '<div class="wp-block-goalietron-goalietron-block widget goalietron_widget">',
+        'before_widget' => '<div ' . $wrapper_attributes . '>',
         'after_widget' => '</div>',
         'before_title' => '<h2 class="widget-title">',
         'after_title' => '</h2>'
