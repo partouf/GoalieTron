@@ -387,37 +387,6 @@ class PatreonClient
     }
     
     
-    /**
-     * Clear the cache for a specific user or all users
-     * 
-     * @param string|int|null $userId User ID to clear, or null to clear all
-     */
-    public function clearCache($userId = null)
-    {
-        if ($userId === null) {
-            $this->cache = [];
-        } else {
-            unset($this->cache[$userId]);
-        }
-    }
-    
-    /**
-     * Get cache data for debugging
-     * 
-     * @return array
-     */
-    public function getCacheInfo()
-    {
-        $info = [];
-        foreach ($this->cache as $userId => $cacheData) {
-            $info[$userId] = [
-                'timestamp' => $cacheData['timestamp'],
-                'age' => time() - $cacheData['timestamp'],
-                'expired' => (time() - $cacheData['timestamp']) > $this->cacheTimeout
-            ];
-        }
-        return $info;
-    }
     
     /**
      * Check if a string is valid JSON

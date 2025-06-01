@@ -12,8 +12,6 @@
  *   goal-add <id> <type> <target> <title>  Add custom goal
  *   goal-remove <id>      Remove custom goal
  *   goal-list             List all custom goals
- *   cache clear           Clear the cache
- *   cache info            Show cache information
  * 
  * Options:
  *   --no-cache            Don't use cache for this request
@@ -101,10 +99,6 @@ class PatreonCLI
                 
             case 'goal-list':
                 $this->handleGoalListCommand();
-                break;
-                
-            case 'cache':
-                $this->handleCacheCommand();
                 break;
                 
             case 'help':
@@ -354,39 +348,6 @@ class PatreonCLI
         echo "\nData extracted at: " . date('Y-m-d H:i:s', $data['extracted_at']) . "\n";
     }
     
-    private function handleCacheCommand()
-    {
-        if (!isset($this->args[1])) {
-            $this->error("Cache subcommand required (clear or info)");
-            return;
-        }
-        
-        $subcommand = $this->args[1];
-        
-        switch ($subcommand) {
-            case 'clear':
-                $this->client->clearCache();
-                echo "Cache cleared\n";
-                break;
-                
-            case 'info':
-                $info = $this->client->getCacheInfo();
-                if (empty($info)) {
-                    echo "Cache is empty\n";
-                } else {
-                    echo "Cache contents:\n";
-                    foreach ($info as $userId => $cacheInfo) {
-                        $status = $cacheInfo['expired'] ? 'expired' : 'valid';
-                        echo "  User $userId: {$cacheInfo['age']}s old ($status)\n";
-                    }
-                }
-                break;
-                
-            default:
-                $this->error("Unknown cache subcommand: $subcommand");
-                break;
-        }
-    }
     
     
     private function displayProgressBar($percentage)
@@ -429,8 +390,6 @@ Commands:
   goal-add <id> <type> <target> <title>  Add custom goal
   goal-remove <id>      Remove custom goal
   goal-list             List all custom goals
-  cache clear           Clear the cache
-  cache info            Show cache information
   help                  Show this help message
 
 Options:

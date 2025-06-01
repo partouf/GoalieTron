@@ -147,7 +147,7 @@ class GoalieTronTester {
         $this->assert_not_contains($output, 'PatreonData = {}', 'Should use fallback data, not empty JSON');
         
         // Should contain test goal data since no specific goal is configured
-        $this->assert_contains($output, 'Reach 10 Patrons', 'Should use default test goal when no goal configured');
+        $this->assert_contains($output, 'Reach 10 patrons', 'Should use default test goal when no goal configured');
         
         echo "\n";
     }
