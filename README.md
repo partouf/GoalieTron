@@ -19,7 +19,6 @@ A WordPress block plugin that displays Patreon pledge goals and progress.
 - 🚀 PHP 7.4+ and PHP 8.x compatible
 - 🔧 Command-line interface for testing and debugging
 - 🧪 Comprehensive test suite with offline mode for fast testing
-- 🔒 Security-focused with proper sanitization and escaping
 - 🌐 Public API scraping (no OAuth required)
 
 ## Installation
