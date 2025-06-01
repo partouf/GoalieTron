@@ -211,7 +211,7 @@ class GoalieTron
         
         $goal = $goals[$goalId];
         
-        // Create test data with 0 current progress
+        // Create test data for unconfigured blocks
         $patreonV1Format = array(
             'data' => array(
                 'type' => 'user',
@@ -225,9 +225,9 @@ class GoalieTron
                     'type' => 'campaign',
                     'id' => 'test-campaign',
                     'attributes' => array(
-                        'patron_count' => 0,
-                        'paid_member_count' => 0,
-                        'creation_count' => 0,
+                        'patron_count' => 3,  // Some progress for unconfigured blocks
+                        'paid_member_count' => 2,
+                        'creation_count' => 8,
                         'pledge_sum' => 0,
                         'pay_per_name' => $goal['type'] === 'income' ? 'month' : ''
                     )
@@ -273,9 +273,9 @@ class GoalieTron
                 
                 // Create mock campaign data for testing
                 $mockCampaignData = array(
-                    'patron_count' => 0,
-                    'paid_member_count' => 0,
-                    'creation_count' => 0,
+                    'patron_count' => 7,  // Show some progress for testing
+                    'paid_member_count' => 4,
+                    'creation_count' => 15,
                     'campaign_name' => 'Test Campaign',
                     'custom_goals' => array($goalId => $goal)
                 );
@@ -297,7 +297,23 @@ class GoalieTron
         $goal = $campaignData['custom_goals'][$goalId];
         
         // Transform custom goal data to match the expected format for the frontend
-        $currentValue = $goal['current'];
+        // Get current value from campaign data based on goal type
+        switch ($goal['type']) {
+            case 'patrons':
+                $currentValue = isset($campaignData['patron_count']) ? $campaignData['patron_count'] : 0;
+                break;
+            case 'members':
+                $currentValue = isset($campaignData['paid_member_count']) ? $campaignData['paid_member_count'] : 0;
+                break;
+            case 'posts':
+                $currentValue = isset($campaignData['creation_count']) ? $campaignData['creation_count'] : 0;
+                break;
+            case 'income':
+                $currentValue = isset($campaignData['pledge_sum']) ? $campaignData['pledge_sum'] / 100 : 0; // Convert cents to dollars
+                break;
+            default:
+                $currentValue = 0;
+        }
         $targetValue = $goal['target'];
         
         // For income goals, values are already in dollars, convert to cents

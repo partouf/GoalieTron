@@ -176,8 +176,9 @@ class HTMLOutputTester {
             'goalietron_bottomtext' => 'Bottom text element'
         );
         
-        foreach ($required_elements as $id => $description) {
-            if (strpos($html, 'id="' . $id . '"') !== false) {
+        foreach ($required_elements as $class => $description) {
+            // Check if the class name appears in the HTML (either as standalone class or as part of multiple classes)
+            if (strpos($html, $class) !== false) {
                 echo "✓ $description found\n";
             } else {
                 echo "✗ $description missing\n";

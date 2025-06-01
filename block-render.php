@@ -33,7 +33,7 @@ function goalietron_block_render_callback($attributes, $content) {
         'bottomtext' => '',
         'showgoaltext' => 'true',
         'showbutton' => 'false',
-        'goal_mode' => 'legacy',
+        'goal_mode' => 'custom',
         'custom_goal_id' => '',
         'patreon_username' => ''
     );

@@ -47,11 +47,11 @@ var GoalieTron = {
 
         return lastGoal;
     },
-    ShowGoalProgress: function(perc) {
+    ShowGoalProgress: function(perc, widgetContainer) {
         var percWidth = perc > 100 ? 100 : perc;
 
-        // Vanilla JS version of the animation
-        var progressBar = document.querySelector("#goalietron_meter > span");
+        // Find the progress bar within the specific widget container
+        var progressBar = widgetContainer ? widgetContainer.querySelector('.goalietron_meter > span') : document.querySelector('.goalietron_meter > span');
         if (progressBar) {
             // Set initial width to 0
             progressBar.style.width = "0%";
@@ -66,7 +66,7 @@ var GoalieTron = {
             });
         }
     },
-    GoalTextFromTo: function(campaignData, goalData) {
+    GoalTextFromTo: function(campaignData, goalData, widgetContainer) {
         var pledgeSum = 0;
         var goalTotal = 0;
 
@@ -74,7 +74,7 @@ var GoalieTron = {
         {
             pledgeSum = Math.floor(this.GetPledgeSum(campaignData));
 
-            var payperElement = document.getElementById("goalietron_paypername");
+            var payperElement = widgetContainer ? widgetContainer.querySelector('.goalietron_paypername') : document.querySelector('.goalietron_paypername');
             if (payperElement) {
                 if (campaignData.pay_per_name) {
                     payperElement.innerHTML = "per " + campaignData.pay_per_name;
@@ -90,7 +90,7 @@ var GoalieTron = {
 
             if (GoalieTronShowGoalText)
             {
-                var goalTextElement = document.getElementById("goalietron_goaltext");
+                var goalTextElement = widgetContainer ? widgetContainer.querySelector('.goalietron_goaltext') : document.querySelector('.goalietron_goaltext');
                 if (goalTextElement) {
                     goalTextElement.innerHTML = goalData.description;
                 }
@@ -101,8 +101,8 @@ var GoalieTron = {
         var isCountGoal = goalData && goalData.goal_type && 
                          (goalData.goal_type === 'patrons' || goalData.goal_type === 'members' || goalData.goal_type === 'posts');
         
-        var moneyTextElement = document.getElementById("goalietron_goalmoneytext");
-        var reachedElement = document.getElementById("goalietron_goalreached");
+        var moneyTextElement = widgetContainer ? widgetContainer.querySelector('.goalietron_goalmoneytext') : document.querySelector('.goalietron_goalmoneytext');
+        var reachedElement = widgetContainer ? widgetContainer.querySelector('.goalietron_goalreached') : document.querySelector('.goalietron_goalreached');
         
         if (isCountGoal) {
             // For count-based goals, show counts without currency
@@ -168,12 +168,12 @@ ready(function() {
         
         
         if (typeof PatreonData !== 'undefined' && typeof PatreonData['data'] === "object") {
-            processGoalieTronWidget(PatreonData, GoalieTronShowGoalText, widgetId);
+            processGoalieTronWidget(PatreonData, GoalieTronShowGoalText, widgetId, script);
         }
     }
 });
 
-function processGoalieTronWidget(PatreonData, GoalieTronShowGoalText, widgetId) {
+function processGoalieTronWidget(PatreonData, GoalieTronShowGoalText, widgetId, script) {
     // Set the current PatreonData globally for the GoalieTron functions
     window.PatreonData = PatreonData;
     window.GoalieTronShowGoalText = GoalieTronShowGoalText;
@@ -208,11 +208,139 @@ function processGoalieTronWidget(PatreonData, GoalieTronShowGoalText, widgetId) 
         goalperc = Math.floor((campaignData.pledge_sum / goalData.amount_cents) * 100.0);
     }
     
-    var percentageElement = document.getElementById("goalietron_percentage");
+    var percentageElement = widgetContainer ? widgetContainer.querySelector('.goalietron_percentage') : document.querySelector('.goalietron_percentage');
     if (percentageElement) {
         percentageElement.value = goalperc;
     }
     
-    GoalieTron.GoalTextFromTo(campaignData, goalData);
-    GoalieTron.ShowGoalProgress(goalperc);
+    // Find the widget container (the element that contains all the goalietron elements)
+    var widgetContainer = script.parentNode;
+    
+    GoalieTron.GoalTextFromTo(campaignData, goalData, widgetContainer);
+    GoalieTron.ShowGoalProgress(goalperc, widgetContainer);
 }
+
+// Debug functions - call these from Chrome DevTools console
+window.GoalieTronDebug = {
+    // List all GoalieTron widgets found on the page
+    listWidgets: function() {
+        var scripts = document.querySelectorAll('script[data-widget-id]');
+        console.log('Found ' + scripts.length + ' GoalieTron widgets:');
+        
+        for (var i = 0; i < scripts.length; i++) {
+            var script = scripts[i];
+            var widgetId = script.getAttribute('data-widget-id');
+            var patreonDataVar = widgetId + '_PatreonData';
+            var PatreonData = window[patreonDataVar];
+            
+            console.log('Widget #' + (i+1) + ':');
+            console.log('  Widget ID: ' + widgetId);
+            console.log('  Data Variable: ' + patreonDataVar);
+            console.log('  Has Data: ' + (typeof PatreonData !== 'undefined'));
+            
+            if (typeof PatreonData !== 'undefined') {
+                console.log('  Data Object:', PatreonData);
+            }
+        }
+    },
+    
+    // Get detailed info about a specific widget
+    inspectWidget: function(widgetNumber) {
+        widgetNumber = widgetNumber || 1;
+        var scripts = document.querySelectorAll('script[data-widget-id]');
+        
+        if (widgetNumber > scripts.length) {
+            console.log('Widget #' + widgetNumber + ' not found. Only ' + scripts.length + ' widgets exist.');
+            return;
+        }
+        
+        var script = scripts[widgetNumber - 1];
+        var widgetId = script.getAttribute('data-widget-id');
+        var patreonDataVar = widgetId + '_PatreonData';
+        var PatreonData = window[patreonDataVar];
+        
+        console.log('=== GoalieTron Widget #' + widgetNumber + ' Debug Info ===');
+        console.log('Widget ID: ' + widgetId);
+        console.log('Data Variable: ' + patreonDataVar);
+        
+        if (typeof PatreonData === 'undefined') {
+            console.log('ERROR: PatreonData is undefined!');
+            return;
+        }
+        
+        console.log('Raw PatreonData:', PatreonData);
+        
+        // Set as global for inspection
+        window.PatreonData = PatreonData;
+        
+        // Get campaign data
+        var campaignData = GoalieTron.GetCampaign();
+        console.log('Campaign Data:', campaignData);
+        
+        // Get goal data
+        var goalData = GoalieTron.GetActiveGoal();
+        console.log('Goal Data:', goalData);
+        
+        if (goalData) {
+            console.log('Goal Type: ' + goalData.goal_type);
+            console.log('Target: ' + (goalData.amount_cents / 100));
+            
+            if (campaignData) {
+                var currentCount = 0;
+                if (goalData.goal_type === 'patrons') {
+                    currentCount = campaignData.patron_count || 0;
+                } else if (goalData.goal_type === 'members') {
+                    currentCount = campaignData.paid_member_count || 0;
+                } else if (goalData.goal_type === 'posts') {
+                    currentCount = campaignData.creation_count || 0;
+                }
+                
+                console.log('Current Count: ' + currentCount);
+                console.log('Progress: ' + currentCount + '/' + (goalData.amount_cents / 100));
+                console.log('Percentage: ' + Math.floor((currentCount / (goalData.amount_cents / 100)) * 100) + '%');
+            }
+        }
+        
+        // Check DOM elements
+        var elements = {
+            meter: document.getElementById('goalietron_meter'),
+            goalText: document.getElementById('goalietron_goaltext'),
+            goalMoney: document.getElementById('goalietron_goalmoneytext'),
+            topText: document.getElementById('goalietron_toptext'),
+            bottomText: document.getElementById('goalietron_bottomtext')
+        };
+        
+        console.log('DOM Elements found:');
+        for (var key in elements) {
+            console.log('  ' + key + ': ' + (elements[key] ? 'Found' : 'Missing'));
+        }
+    },
+    
+    // Force reprocess a widget
+    reprocessWidget: function(widgetNumber) {
+        widgetNumber = widgetNumber || 1;
+        var scripts = document.querySelectorAll('script[data-widget-id]');
+        
+        if (widgetNumber > scripts.length) {
+            console.log('Widget #' + widgetNumber + ' not found.');
+            return;
+        }
+        
+        var script = scripts[widgetNumber - 1];
+        var widgetId = script.getAttribute('data-widget-id');
+        var patreonDataVar = widgetId + '_PatreonData';
+        var showGoalTextVar = widgetId + '_ShowGoalText';
+        
+        var PatreonData = window[patreonDataVar];
+        var ShowGoalText = window[showGoalTextVar];
+        
+        console.log('Reprocessing widget #' + widgetNumber + ' (ID: ' + widgetId + ')');
+        
+        if (typeof PatreonData !== 'undefined') {
+            processGoalieTronWidget(PatreonData, ShowGoalText, widgetId);
+            console.log('Widget reprocessed successfully!');
+        } else {
+            console.log('ERROR: No PatreonData found for this widget!');
+        }
+    }
+};
