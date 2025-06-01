@@ -16,7 +16,7 @@ var GoalieTron = {
         return campaignData.patron_count;
     },
     GetPledgeSum: function(campaignData) {
-        return campaignData.pledge_sum / 100.0;
+        return campaignData.pledge_sum;
     },
     GetGoalTotal: function(goalData) {
         return goalData.amount_cents / 100.0;
@@ -204,8 +204,8 @@ function processGoalieTronWidget(PatreonData, GoalieTronShowGoalText, widgetId, 
         
         goalperc = Math.floor((currentCount / targetCount) * 100.0);
     } else {
-        // For income goals, use pledge_sum vs amount_cents
-        goalperc = Math.floor((campaignData.pledge_sum / goalData.amount_cents) * 100.0);
+        // For income goals, use pledge_sum (dollars) vs amount_cents (cents converted to dollars)
+        goalperc = Math.floor((campaignData.pledge_sum / (goalData.amount_cents / 100)) * 100.0);
     }
     
     var percentageElement = widgetContainer ? widgetContainer.querySelector('.goalietron_percentage') : document.querySelector('.goalietron_percentage');
@@ -286,18 +286,22 @@ window.GoalieTronDebug = {
             console.log('Target: ' + (goalData.amount_cents / 100));
             
             if (campaignData) {
-                var currentCount = 0;
+                var currentValue = 0;
+                var targetValue = goalData.amount_cents / 100;
+                
                 if (goalData.goal_type === 'patrons') {
-                    currentCount = campaignData.patron_count || 0;
+                    currentValue = campaignData.patron_count || 0;
                 } else if (goalData.goal_type === 'members') {
-                    currentCount = campaignData.paid_member_count || 0;
+                    currentValue = campaignData.paid_member_count || 0;
                 } else if (goalData.goal_type === 'posts') {
-                    currentCount = campaignData.creation_count || 0;
+                    currentValue = campaignData.creation_count || 0;
+                } else if (goalData.goal_type === 'income') {
+                    currentValue = campaignData.pledge_sum || 0;
                 }
                 
-                console.log('Current Count: ' + currentCount);
-                console.log('Progress: ' + currentCount + '/' + (goalData.amount_cents / 100));
-                console.log('Percentage: ' + Math.floor((currentCount / (goalData.amount_cents / 100)) * 100) + '%');
+                console.log('Current Value: ' + currentValue);
+                console.log('Progress: ' + currentValue + '/' + targetValue);
+                console.log('Percentage: ' + Math.floor((currentValue / targetValue) * 100) + '%');
             }
         }
         
