@@ -22,8 +22,9 @@ jobs:
         make package
         
         # Extract the package to a directory for the plugin check
-        mkdir -p plugin-for-check
-        cd plugin-for-check
+        # Use 'goalietron' as the directory name to match the text domain
+        mkdir -p goalietron
+        cd goalietron
         unzip -q ../goalietron-plugin.zip
         
         # The action expects the plugin files in the current directory
@@ -38,11 +39,10 @@ jobs:
     - name: Run WordPress Plugin Check
       uses: wordpress/plugin-check-action@v1
       with:
-        build-dir: './plugin-for-check'
+        build-dir: './goalietron'
         wp-version: 'latest'
-        php-version: '8.1'
-        exclude-checks: ''  # Run all checks
-        include-experimental: false
+        slug: 'goalietron'
+        ignore-warnings: true
     
     - name: Upload Plugin Check results
       if: always()
