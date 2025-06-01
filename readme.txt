@@ -2,7 +2,7 @@
 
 License: GPLv2
 Requires at least: 6.8.1
-Tested up to: 6.8.1
+Tested up to: 6.8
 Tags: patreon, fundraising, goals
 Stable tag: 2.0
 Contributors: partouf, claude

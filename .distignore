@@ -1,0 +1,12 @@
+# Files and directories to exclude from the plugin distribution
+.git
+.github
+.gitignore
+.distignore
+CLAUDE.md
+Makefile
+README.md
+tests
+patreon-cli.php
+*.zip
+package.sh
