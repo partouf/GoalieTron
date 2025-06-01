@@ -14,12 +14,10 @@ License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain: goalietron
 */
 
-// Include debug script temporarily for troubleshooting
 if (file_exists(__DIR__ . '/goalietron-debug.php')) {
     require_once __DIR__ . '/goalietron-debug.php';
 }
 
-// Check for required files before including
 if (!file_exists(__DIR__ . '/PatreonClient.php')) {
     if (is_admin()) {
         add_action('admin_notices', function() {
@@ -74,7 +72,6 @@ class GoalieTron
         $this->patreonClient->setCacheTimeout(60);
         $this->patreonClient->setFetchTimeout(3);
         
-        // Enable offline mode for testing environments
         if (defined('GOALIETRON_TESTING') && GOALIETRON_TESTING === true) {
             $this->patreonClient->setOfflineMode(true);
         }
@@ -101,20 +98,16 @@ class GoalieTron
         }
     }
     
-    // Add a method to create instance with custom options (for blocks)
     public static function CreateInstance($custom_options = array())
     {
         $instance = new GoalieTron();
         
-        // Override with custom options (but don't load from database)
         foreach ($custom_options as $key => $value) {
             if (array_key_exists($key, $instance->options)) {
-                // Sanitize input based on option type
                 $instance->options[$key] = $instance->sanitizeOption($key, $value);
             }
         }
         
-        // Ensure custom goals are loaded for custom mode blocks
         if ($instance->options['goal_mode'] === 'custom') {
             $instance->loadCustomGoals();
         }
@@ -134,46 +127,37 @@ class GoalieTron
         switch ($key) {
             case 'patreon_userid':
             case 'custom_goal_id':
-                // Alphanumeric IDs only
                 return preg_replace('/[^a-zA-Z0-9_-]/', '', $value);
                 
             case 'patreon_username':
-                // Patreon usernames can contain letters, numbers, underscores, hyphens
                 return preg_replace('/[^a-zA-Z0-9_-]/', '', $value);
                 
             case 'design':
-                // Only allow predefined design values
                 $valid_designs = array('default', 'fancy', 'minimal', 'streamlined', 'reversed', 'swapped');
                 return in_array($value, $valid_designs) ? $value : 'default';
                 
             case 'metercolor':
-                // Only allow predefined color values
                 $valid_colors = array('green', 'orange', 'red', 'blue');
                 return in_array($value, $valid_colors) ? $value : 'green';
                 
             case 'goal_mode':
-                // Only allow predefined goal modes
                 $valid_modes = array('legacy', 'custom');
                 return in_array($value, $valid_modes) ? $value : 'custom';
                 
             case 'showgoaltext':
             case 'showbutton':
             case 'cache_only':
-                // Boolean-like values
                 return in_array($value, array('true', 'false')) ? $value : 'false';
                 
             case 'cache_age':
-                // Integer timestamp
                 return intval($value);
                 
             case 'title':
             case 'toptext':
             case 'bottomtext':
-                // Text fields - sanitize for safe storage and display
                 return sanitize_text_field($value);
                 
             case 'cache':
-                // JSON data - validate it's valid JSON
                 if (is_string($value)) {
                     $decoded = json_decode($value, true);
                     return (json_last_error() === JSON_ERROR_NONE) ? $value : '';
@@ -181,7 +165,6 @@ class GoalieTron
                 return '';
                 
             default:
-                // Unknown option - sanitize as text field
                 return sanitize_text_field($value);
         }
     }
@@ -256,8 +239,6 @@ class GoalieTron
         $configView = str_replace("{goalietron_button}", $buttonhtml, $configView);
 
         foreach ($this->options as $option_name => $option_value) {
-            // Escape output based on context - most template variables are used in HTML context
-            // Don't escape certain fields that need raw output
             if (in_array($option_name, array('cache', 'cache_age', 'cache_only'))) {
                 $escaped_value = $option_value;
             } else {
@@ -268,22 +249,17 @@ class GoalieTron
 
         $patreonData = $this->GetPatreonData();
         
-        // Calculate server-side preview values for WordPress editor
         $serverSideValues = $this->calculateServerSidePreviewData($patreonData);
         
-        // Create unique ID for this widget instance to avoid variable conflicts
         $widgetId = 'gt_' . uniqid();
         
-        // Replace the generic PatreonData variable with unique one and add widget ID
         $configView = str_replace('PatreonData', $widgetId . '_PatreonData', $configView);
         $configView = str_replace('GoalieTronShowGoalText', $widgetId . '_ShowGoalText', $configView);
         
-        // Add widget ID for JavaScript to use
         $configView = str_replace('<script language="JavaScript">', '<script language="JavaScript" data-widget-id="' . $widgetId . '">', $configView);
         
         $configView = str_replace("{goalietron_json}", $patreonData, $configView);
         
-        // Inject server-side calculated values for better editor preview
         $configView = str_replace('<span class="goalietron_goalmoneytext"></span>', 
                                  '<span class="goalietron_goalmoneytext">' . esc_html($serverSideValues['goalText']) . '</span>', 
                                  $configView);
@@ -291,7 +267,6 @@ class GoalieTron
                                  '<span style="width: ' . esc_attr($serverSideValues['progressPercent']) . '%; display: block; height: 100%; background-color: #2bc253; border-radius: 4px;"></span>', 
                                  $configView);
         
-        // Add inline styles for WordPress editor compatibility (ensures progress bar is visible)
         $configView = preg_replace('/<div class="meter([^"]*goalietron_meter[^"]*)"[^>]*>/', 
                                   '<div class="meter$1" style="height: 8px; background: #f2f4f5; border-radius: 4px; position: relative;">', 
                                   $configView);
@@ -396,10 +371,9 @@ class GoalieTron
     
     private function GetCustomGoalDataFallback()
     {
-        // Create test data when username is missing but custom goal is selected
         $goalId = $this->options['custom_goal_id'];
         if (empty($goalId)) {
-            $goalId = 'patrons-10'; // Default goal
+            $goalId = 'patrons-10';
         }
         
         $goals = $this->patreonClient->getCustomGoals();
@@ -409,7 +383,6 @@ class GoalieTron
         
         $goal = $goals[$goalId];
         
-        // Create test data for unconfigured blocks
         $patreonV1Format = array(
             'data' => array(
                 'type' => 'user',
@@ -451,7 +424,6 @@ class GoalieTron
         $username = $this->options['patreon_username'];
         $goalId = $this->options['custom_goal_id'];
         
-        // Check cache first
         $cacheKey = 'custom_goal_' . $username . '_' . $goalId;
         $useCache = !empty($this->options['cache']) && (time() - $this->options['cache_age'] <= 60);
         
@@ -459,40 +431,32 @@ class GoalieTron
             return $this->options['cache'];
         }
         
-        // Get campaign data with custom goals
         $campaignData = $this->patreonClient->getCampaignDataWithGoals($username, true);
         
         
         if ($campaignData === false || !isset($campaignData['custom_goals'][$goalId])) {
-            // If no campaign data but we have goals, create mock data with real goal
             $goals = $this->patreonClient->getCustomGoals();
             if (isset($goals[$goalId])) {
                 $goal = $goals[$goalId];
                 
                 // Create mock campaign data for testing with ~33% progress
                 $mockCampaignData = array(
-                    'patron_count' => 8,      // 8/25 = 32% for patrons-25 goal
-                    'paid_member_count' => 3, // 3/10 = 30% for members goals  
-                    'creation_count' => 17,   // 17/50 = 34% for posts goals
-                    'pledge_sum' => 8333,     // $83.33 in cents, $83/$250 = 33% for income goals
+                    'patron_count' => 8,
+                    'paid_member_count' => 3,
+                    'creation_count' => 17,
+                    'pledge_sum' => 8333,
                     'campaign_name' => 'Demo Campaign',
                     'custom_goals' => array($goalId => $goal)
                 );
                 
-                // Debug logging already wrapped in WP_DEBUG check
-                
                 $campaignData = $mockCampaignData;
             } else {
-                // Fallback to cached data or empty
-                // Debug logging already wrapped in WP_DEBUG check
                 return !empty($this->options['cache']) ? $this->options['cache'] : "{}";
             }
         }
         
         $goal = $campaignData['custom_goals'][$goalId];
         
-        // Transform custom goal data to match the expected format for the frontend
-        // Get current value from campaign data based on goal type
         switch ($goal['type']) {
             case 'patrons':
                 $currentValue = isset($campaignData['patron_count']) ? $campaignData['patron_count'] : 0;
@@ -511,17 +475,14 @@ class GoalieTron
         }
         $targetValue = $goal['target'];
         
-        // For income goals, values are already in dollars, convert to cents
-        // For other goals, values are counts, multiply by 100 for frontend compatibility
         if ($goal['type'] === 'income') {
-            $pledgeSum = $currentValue * 100; // Convert dollars to cents
-            $goalAmount = $targetValue * 100; // Convert dollars to cents
+            $pledgeSum = $currentValue * 100;
+            $goalAmount = $targetValue * 100;
         } else {
-            $pledgeSum = $currentValue * 100; // Use count * 100 for compatibility
-            $goalAmount = $targetValue * 100; // Use count * 100 for compatibility
+            $pledgeSum = $currentValue * 100;
+            $goalAmount = $targetValue * 100;
         }
         
-        // Format data to match Patreon API v1 structure that the JavaScript expects
         $patreonV1Format = array(
             'data' => array(
                 'type' => 'user',
@@ -531,7 +492,6 @@ class GoalieTron
                 )
             ),
             'included' => array(
-                // Campaign data
                 array(
                     'type' => 'campaign',
                     'id' => 'custom-campaign',
@@ -560,7 +520,6 @@ class GoalieTron
         $jsonData = json_encode($patreonV1Format);
         
         
-        // Update cache
         $this->options['cache'] = $jsonData;
         $this->SaveOptions("cache");
         
@@ -638,7 +597,6 @@ function register_goalietron_block() {
         }
     }
 
-    // Register the block editor script with proper dependencies
     wp_register_script(
         'goalietron-block-editor',
         plugin_dir_url(__FILE__) . 'block-editor.js',
@@ -647,21 +605,18 @@ function register_goalietron_block() {
         true
     );
     
-    // Add custom goals data
     wp_add_inline_script(
         'goalietron-block-editor',
         'window.goalietronCustomGoals = ' . json_encode($custom_goals) . ';',
         'before'
     );
     
-    // Register block type from block.json
     register_block_type(__DIR__ . '/block.json', array(
         'editor_script' => 'goalietron-block-editor',
         'render_callback' => 'goalietron_block_render_callback'
     ));
 }
 
-// Hook block registration
 add_action('init', 'register_goalietron_block');
 
 // Enqueue editor-specific assets
@@ -676,16 +631,13 @@ function goalietron_enqueue_block_editor_assets() {
 }
 add_action('enqueue_block_editor_assets', 'goalietron_enqueue_block_editor_assets');
 
-// Add block category if needed
 function goalietron_block_categories($categories) {
-    // Check if our category already exists
     foreach ($categories as $category) {
         if ($category['slug'] === 'widgets') {
             return $categories;
         }
     }
     
-    // Add widgets category if it doesn't exist
     return array_merge(
         $categories,
         array(

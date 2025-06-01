@@ -82,11 +82,9 @@ class PatreonClient
             return false;
         }
         
-        // Remove @ if present
         $username = ltrim($username, '@');
         $cacheKey = 'public_' . $username;
         
-        // Check cache first
         if ($useCache && isset($this->cache[$cacheKey])) {
             $cachedData = $this->cache[$cacheKey];
             if (time() - $cachedData['timestamp'] <= $this->cacheTimeout) {
@@ -94,7 +92,6 @@ class PatreonClient
             }
         }
         
-        // If offline mode is enabled, return mocked data instead of making HTTP calls
         if ($this->offlineMode) {
             return $this->getMockedCampaignData($username);
         }
@@ -120,21 +117,18 @@ class PatreonClient
             if (defined('WP_DEBUG') && WP_DEBUG) {
                 error_log("PatreonClient: Failed to fetch public page for username: $username");
             }
-            // Return cached data if available, even if expired
             if (isset($this->cache[$cacheKey])) {
                 return $this->cache[$cacheKey]['data'];
             }
             return false;
         }
         
-        // Extract JSON data from the page
         $campaignData = $this->extractCampaignDataFromHtml($pageData);
         
         if ($campaignData === false) {
             if (defined('WP_DEBUG') && WP_DEBUG) {
                 error_log("PatreonClient: Failed to extract campaign data from HTML for $username");
             }
-            // Return cached data if available
             if (isset($this->cache[$cacheKey])) {
                 return $this->cache[$cacheKey]['data'];
             }
@@ -160,44 +154,36 @@ class PatreonClient
     {
         $result = [];
         
-        // Look for patron_count
         if (preg_match('/"patron_count":\s*(\d+)/', $html, $matches)) {
             $result['patron_count'] = intval($matches[1]);
         }
         
-        // Look for paid_member_count
         if (preg_match('/"paid_member_count":\s*(\d+)/', $html, $matches)) {
             $result['paid_member_count'] = intval($matches[1]);
         }
         
-        // Look for creation_count (posts)
         if (preg_match('/"creation_count":\s*(\d+)/', $html, $matches)) {
             $result['creation_count'] = intval($matches[1]);
         }
         
-        // Look for campaign name
         if (preg_match('/"name":\s*"([^"]+)"/', $html, $matches)) {
             $result['campaign_name'] = $matches[1];
         }
         
         
-        // Look for currency
         if (preg_match('/"currency":\s*"([^"]+)"/', $html, $matches)) {
             $result['currency'] = $matches[1];
         }
         
-        // Look for earnings visibility (monthly earnings)
         if (preg_match('/"earnings_visibility":\s*"([^"]+)"/', $html, $matches)) {
             $result['earnings_visibility'] = $matches[1];
         }
         
-        // Look for pledge sum (if visible)
         if (preg_match('/"pledge_sum":\s*(\d+)/', $html, $matches)) {
             $result['pledge_sum_cents'] = intval($matches[1]);
-            $result['pledge_sum'] = intval($matches[1]) / 100; // Convert cents to dollars
+            $result['pledge_sum'] = intval($matches[1]) / 100;
         }
         
-        // Look for goals data
         if (preg_match('/"goals":\s*\[([^\]]+)\]/', $html, $matches)) {
             $goalsJson = '[' . $matches[1] . ']';
             $goals = json_decode($goalsJson, true);
@@ -206,12 +192,10 @@ class PatreonClient
             }
         }
         
-        // Look for avatar URL
         if (preg_match('/"avatar_photo_url":\s*"([^"]+)"/', $html, $matches)) {
             $result['avatar_url'] = $matches[1];
         }
         
-        // Look for cover photo URL
         if (preg_match('/"cover_photo_url":\s*"([^"]+)"/', $html, $matches)) {
             $result['cover_photo_url'] = $matches[1];
         }
@@ -221,12 +205,10 @@ class PatreonClient
             $result['is_monthly'] = $matches[1] === 'true';
         }
         
-        // Return false if we couldn't extract any meaningful data
         if (empty($result)) {
             return false;
         }
         
-        // Add metadata
         $result['extracted_at'] = time();
         $result['data_source'] = 'public_about_page';
         
@@ -537,16 +519,14 @@ class PatreonClient
      */
     private function getMockedCampaignData($username)
     {
-        // Generate consistent mock data based on username
         $hash = crc32($username);
         $baseValue = $hash % 100;
         
-        // Create deterministic mock data that varies by username
         $mockData = [
             'patron_count' => 10 + ($baseValue % 50),
             'paid_member_count' => 5 + ($baseValue % 25),
             'creation_count' => 20 + ($baseValue % 80),
-            'pledge_sum' => 5000 + ($baseValue * 100), // $50-$150 in cents
+            'pledge_sum' => 5000 + ($baseValue * 100),
             'campaign_name' => 'Mock Campaign for ' . $username,
             'currency' => 'USD',
             'earnings_visibility' => 'public',
@@ -558,7 +538,6 @@ class PatreonClient
             'data_source' => 'mock_offline_mode'
         ];
         
-        // Update cache even in offline mode for consistency
         $cacheKey = 'public_' . $username;
         $this->cache[$cacheKey] = [
             'timestamp' => time(),
