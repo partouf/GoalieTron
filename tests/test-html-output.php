@@ -21,7 +21,7 @@ class HTMLOutputTester {
         $options = array(
             'goal_mode' => 'custom',
             'custom_goal_id' => 'patrons-10',
-            'patreon_username' => 'scishow',
+            'patreon_username' => 'test-offline-user',
             'design' => 'streamlined',
             'toptext' => 'Fund me!',
             'bottomtext' => 'Please?',
