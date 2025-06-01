@@ -8,12 +8,14 @@
 
 A WordPress block plugin that displays Patreon pledge goals and progress.
 
+Note: this plugin has been rewritten with the help of AI
+
 ## Features
 
 - 📊 Display Patreon campaign goals and current progress
 - 🎯 Support for custom goals (patrons, members, posts, income)
 - 🎨 Multiple design themes (default, fancy, minimal, streamlined, reversed, swapped)
-- 🧩 WordPress block support with server-side rendering for instant previews
+- 🧩 WordPress block support with partial server-side rendering
 - ⚡ No jQuery dependency - pure vanilla JavaScript
 - 🔄 Automatic caching to reduce API calls
 - 🚀 PHP 7.4+ and PHP 8.x compatible
