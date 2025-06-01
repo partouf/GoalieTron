@@ -11,6 +11,12 @@ if (!defined('ABSPATH')) {
 // Mock WordPress database options storage
 $wp_options = array();
 
+// Track registered and enqueued handles for validation
+$wp_registered_styles = array();
+$wp_registered_scripts = array();
+$wp_enqueued_styles = array();
+$wp_enqueued_scripts = array();
+
 // Mock WordPress functions
 function get_option($option_name, $default = false) {
     global $wp_options;
@@ -41,19 +47,109 @@ function plugin_dir_url($file) {
 }
 
 function wp_register_style($handle, $src, $deps = array(), $ver = false, $media = 'all') {
-    // Mock function - no-op for testing
+    global $wp_registered_styles;
+    
+    // Assert handle is provided and not empty
+    if (empty($handle)) {
+        throw new Exception("wp_register_style: Handle cannot be empty");
+    }
+    
+    // Assert src is provided and not empty
+    if (empty($src)) {
+        throw new Exception("wp_register_style: Source URL cannot be empty for handle '$handle'");
+    }
+    
+    // Check if file exists (convert URL to file path for local files)
+    if (strpos($src, 'http://localhost/wp-content/plugins/goalietron/') === 0) {
+        $file_path = str_replace('http://localhost/wp-content/plugins/goalietron/', dirname(__DIR__) . '/', $src);
+        if (!file_exists($file_path)) {
+            throw new Exception("wp_register_style: CSS file does not exist: $file_path (handle: $handle)");
+        }
+    }
+    
+    // WordPress allows re-registering the same handle (overwrites previous registration)
+    // So we don't need to check for existing handles here
+    
+    // Register the style
+    $wp_registered_styles[$handle] = array(
+        'src' => $src,
+        'deps' => $deps,
+        'ver' => $ver,
+        'media' => $media
+    );
 }
 
 function wp_enqueue_style($handle) {
-    // Mock function - no-op for testing
+    global $wp_registered_styles, $wp_enqueued_styles;
+    
+    // Assert handle is provided and not empty
+    if (empty($handle)) {
+        throw new Exception("wp_enqueue_style: Handle cannot be empty");
+    }
+    
+    // Check if style was registered before enqueuing
+    if (!isset($wp_registered_styles[$handle])) {
+        throw new Exception("wp_enqueue_style: Style '$handle' must be registered before being enqueued");
+    }
+    
+    // WordPress typically ignores duplicate enqueue calls, so we'll just track it
+    // but not throw an error (this matches WordPress behavior)
+    
+    // Enqueue the style
+    $wp_enqueued_styles[$handle] = true;
 }
 
 function wp_register_script($handle, $src, $deps = array(), $ver = false, $in_footer = false) {
-    // Mock function - no-op for testing
+    global $wp_registered_scripts;
+    
+    // Assert handle is provided and not empty
+    if (empty($handle)) {
+        throw new Exception("wp_register_script: Handle cannot be empty");
+    }
+    
+    // Assert src is provided and not empty
+    if (empty($src)) {
+        throw new Exception("wp_register_script: Source URL cannot be empty for handle '$handle'");
+    }
+    
+    // Check if file exists (convert URL to file path for local files)
+    if (strpos($src, 'http://localhost/wp-content/plugins/goalietron/') === 0) {
+        $file_path = str_replace('http://localhost/wp-content/plugins/goalietron/', dirname(__DIR__) . '/', $src);
+        if (!file_exists($file_path)) {
+            throw new Exception("wp_register_script: JS file does not exist: $file_path (handle: $handle)");
+        }
+    }
+    
+    // WordPress allows re-registering the same handle (overwrites previous registration)
+    // So we don't need to check for existing handles here
+    
+    // Register the script
+    $wp_registered_scripts[$handle] = array(
+        'src' => $src,
+        'deps' => $deps,
+        'ver' => $ver,
+        'in_footer' => $in_footer
+    );
 }
 
 function wp_enqueue_script($handle) {
-    // Mock function - no-op for testing
+    global $wp_registered_scripts, $wp_enqueued_scripts;
+    
+    // Assert handle is provided and not empty
+    if (empty($handle)) {
+        throw new Exception("wp_enqueue_script: Handle cannot be empty");
+    }
+    
+    // Check if script was registered before enqueuing
+    if (!isset($wp_registered_scripts[$handle])) {
+        throw new Exception("wp_enqueue_script: Script '$handle' must be registered before being enqueued");
+    }
+    
+    // WordPress typically ignores duplicate enqueue calls, so we'll just track it
+    // but not throw an error (this matches WordPress behavior)
+    
+    // Enqueue the script
+    $wp_enqueued_scripts[$handle] = true;
 }
 
 function wp_parse_args($args, $defaults = '') {
@@ -122,8 +218,44 @@ function reset_wp_options() {
     $wp_options = array();
 }
 
+// Helper function to reset WordPress script/style tracking for testing
+function reset_wp_assets() {
+    global $wp_registered_styles, $wp_registered_scripts, $wp_enqueued_styles, $wp_enqueued_scripts;
+    $wp_registered_styles = array();
+    $wp_registered_scripts = array();
+    $wp_enqueued_styles = array();
+    $wp_enqueued_scripts = array();
+}
+
+// Helper function to reset all WordPress state for testing
+function reset_wp_state() {
+    reset_wp_options();
+    reset_wp_assets();
+}
+
 // Helper function to set options for testing
 function set_test_option($name, $value) {
     global $wp_options;
     $wp_options[$name] = $value;
+}
+
+// Helper functions to get asset registration state for testing
+function get_registered_styles() {
+    global $wp_registered_styles;
+    return $wp_registered_styles;
+}
+
+function get_registered_scripts() {
+    global $wp_registered_scripts;
+    return $wp_registered_scripts;
+}
+
+function get_enqueued_styles() {
+    global $wp_enqueued_styles;
+    return $wp_enqueued_styles;
+}
+
+function get_enqueued_scripts() {
+    global $wp_enqueued_scripts;
+    return $wp_enqueued_scripts;
 }

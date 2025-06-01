@@ -51,7 +51,7 @@ class GoalieTronTester {
     private function test_basic_widget_rendering() {
         echo "Basic Block Rendering\n";
         
-        reset_wp_options();
+        reset_wp_state();
         
         $goalietron = new GoalieTron();
         $args = array(
@@ -75,7 +75,7 @@ class GoalieTronTester {
     private function test_custom_goal_mode() {
         echo "Custom Goal Mode\n";
         
-        reset_wp_options();
+        reset_wp_state();
         
         // Create instance with custom goal configuration
         $custom_options = array(
@@ -114,7 +114,7 @@ class GoalieTronTester {
     private function test_undefined_goal_mode() {
         echo "Undefined Goal Mode Handling\n";
         
-        reset_wp_options();
+        reset_wp_state();
         
         // Create instance without goal_mode specified (should default to custom)
         $undefined_options = array(
@@ -155,7 +155,7 @@ class GoalieTronTester {
     private function test_multiple_blocks() {
         echo "Multiple Blocks\n";
         
-        reset_wp_options();
+        reset_wp_state();
         
         // First block
         $block1_options = array(
@@ -212,7 +212,7 @@ class GoalieTronTester {
         $designs = array('default', 'fancy', 'minimal', 'streamlined', 'reversed', 'swapped');
         
         foreach ($designs as $design) {
-            reset_wp_options();
+            reset_wp_state();
             
             $options = array(
                 'goal_mode' => 'custom',
