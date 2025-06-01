@@ -1,6 +1,6 @@
 # GoalieTron Makefile for testing and packaging
 
-.PHONY: test test-basic test-html test-css test-security test-all clean package help
+.PHONY: test test-basic test-html test-css test-security test-serverside test-all clean package help
 
 # Default target
 help:
@@ -11,12 +11,13 @@ help:
 	@echo "  make test-html    - Run HTML output validation tests"
 	@echo "  make test-css     - Run CSS class handling tests"
 	@echo "  make test-security - Run security tests"
+	@echo "  make test-serverside - Run server-side rendering tests"
 	@echo "  make test-all     - Run all tests with verbose output"
 	@echo "  make clean        - Clean up test artifacts"
 	@echo "  make package      - Create plugin zip file"
 
 # Run all tests
-test: syntax-check test-basic test-html test-css test-security
+test: syntax-check test-basic test-html test-css test-security test-serverside
 
 # Run basic tests
 test-basic:
@@ -38,6 +39,11 @@ test-security:
 	@echo "Running security tests..."
 	@php tests/test-security.php
 
+# Run server-side rendering tests
+test-serverside:
+	@echo "Running server-side rendering tests..."
+	@php tests/test-serverside-rendering.php
+
 # Run all tests with verbose output
 test-all:
 	@echo "Running all tests with debug output..."
@@ -48,6 +54,8 @@ test-all:
 	@DEBUG_OUTPUT=true php tests/test-css-classes.php
 	@echo ""
 	@DEBUG_OUTPUT=true php tests/test-security.php
+	@echo ""
+	@DEBUG_OUTPUT=true php tests/test-serverside-rendering.php
 
 # Clean up any test artifacts
 clean:
