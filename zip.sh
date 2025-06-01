@@ -1,1 +1,0 @@
-zip -r goalietron-plugin.zip goalietron.php LICENSE PatreonClient.php readme.txt assets _inc views enable-classic-widgets.php debug-widgets.php goalietron-debug.php goalietron-error-catcher.php test-widget-registration.php test-widgets-page.php

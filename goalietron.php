@@ -409,54 +409,6 @@ class GoalieTron
         return $userId !== false ? $userId : -1;
     }
 
-    private function SavePostedData()
-    {
-        foreach ($this->options as $option_name => $option_oldvalue) {
-            if (isset($_POST[self::OptionPrefix . $option_name])) {
-                $option_newvalue = $_POST[self::OptionPrefix . $option_name];
-            } else {
-                continue;
-            }
-
-            if ($option_name == "patreon_userid") {
-                if (!is_numeric($option_newvalue)) {
-                    $userid = $this->GetUserIDFromUserName($option_newvalue);
-                    if ($userid > 0) {
-                        $option_newvalue = $userid;
-                    } else {
-                        $option_newvalue = "";
-                    }
-                }
-
-                if ($option_newvalue != $option_oldvalue) {
-                    $this->options['cache_age'] = 0;
-                }
-            }
-
-            $this->options[$option_name] = $option_newvalue;
-        }
-
-        $this->SaveOptions();
-    }
-
-    public function DisplaySettings()
-    {
-        if (!empty($_POST)) {
-            $this->SavePostedData();
-            $this->loadCustomGoals(); // Reload goals after saving
-        }
-
-        $configView = file_get_contents(__DIR__ . "/views/config.html");
-        
-        // Generate custom goals options
-        $customGoalsOptions = $this->generateCustomGoalsOptions();
-        $configView = str_replace("{custom_goals_options}", $customGoalsOptions, $configView);
-        
-        foreach ($this->options as $option_name => $option_value) {
-            $configView = str_replace("{" . $option_name . "}", $option_value, $configView);
-        }
-        echo $configView;
-    }
 
     public function generateCustomGoalsOptions()
     {
