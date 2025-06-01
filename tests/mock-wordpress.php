@@ -207,6 +207,35 @@ $wp_actions_done = array();
 function add_action($tag, $function_to_add, $priority = 10, $accepted_args = 1) {
     global $wp_actions;
     
+    // Assert tag is provided and not empty
+    if (empty($tag)) {
+        throw new Exception("add_action: Action tag cannot be empty");
+    }
+    
+    // Assert function is provided and not empty
+    if (empty($function_to_add)) {
+        throw new Exception("add_action: Function cannot be empty for action '$tag'");
+    }
+    
+    // Validate priority is numeric
+    if (!is_numeric($priority)) {
+        throw new Exception("add_action: Priority must be numeric for action '$tag', got: " . gettype($priority));
+    }
+    
+    // Validate accepted_args is a positive integer
+    if (!is_int($accepted_args) || $accepted_args < 1) {
+        throw new Exception("add_action: Accepted args must be a positive integer for action '$tag', got: $accepted_args");
+    }
+    
+    // Check if function exists (for string function names)
+    if (is_string($function_to_add) && !function_exists($function_to_add)) {
+        // In WordPress, it's common to register actions for functions that don't exist yet
+        // So we'll just log this as a debug message rather than throwing an error
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log("add_action: Function '$function_to_add' does not exist yet for action '$tag'");
+        }
+    }
+    
     if (!isset($wp_actions[$tag])) {
         $wp_actions[$tag] = array();
     }
@@ -223,6 +252,36 @@ function add_action($tag, $function_to_add, $priority = 10, $accepted_args = 1) 
 
 function add_filter($tag, $function_to_add, $priority = 10, $accepted_args = 1) {
     global $wp_filters;
+    
+    // Assert tag is provided and not empty
+    if (empty($tag)) {
+        throw new Exception("add_filter: Filter tag cannot be empty");
+    }
+    
+    // Assert function is provided and not empty
+    if (empty($function_to_add)) {
+        throw new Exception("add_filter: Function cannot be empty for filter '$tag'");
+    }
+    
+    // Validate priority is numeric
+    if (!is_numeric($priority)) {
+        throw new Exception("add_filter: Priority must be numeric for filter '$tag', got: " . gettype($priority));
+    }
+    
+    // Validate accepted_args is a positive integer
+    if (!is_int($accepted_args) || $accepted_args < 1) {
+        throw new Exception("add_filter: Accepted args must be a positive integer for filter '$tag', got: $accepted_args");
+    }
+    
+    // Check if function exists (for string function names)
+    if (is_string($function_to_add) && !function_exists($function_to_add)) {
+        // In WordPress, it's common to register filters for functions that don't exist yet
+        // (like when plugins register filters in __construct but define functions later)
+        // So we'll just log this as a debug message rather than throwing an error
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log("add_filter: Function '$function_to_add' does not exist yet for filter '$tag'");
+        }
+    }
     
     if (!isset($wp_filters[$tag])) {
         $wp_filters[$tag] = array();
@@ -514,6 +573,12 @@ function simulate_wp_init() {
 function get_registered_actions($tag = null) {
     global $wp_actions;
     return $tag ? (isset($wp_actions[$tag]) ? $wp_actions[$tag] : array()) : $wp_actions;
+}
+
+// Helper function to get registered filters for testing
+function get_registered_filters($tag = null) {
+    global $wp_filters;
+    return $tag ? (isset($wp_filters[$tag]) ? $wp_filters[$tag] : array()) : $wp_filters;
 }
 
 // Helper function to get action execution count for testing

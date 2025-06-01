@@ -12,6 +12,7 @@ require_once __DIR__ . '/mock-wordpress.php';
 require_once dirname(__DIR__) . '/PatreonClient.php';
 require_once dirname(__DIR__) . '/goalietron.php';
 
+
 // Test helper class
 class GoalieTronTester {
     private $test_count = 0;
@@ -21,6 +22,9 @@ class GoalieTronTester {
     public function run_all_tests() {
         echo "Starting GoalieTron Tests...\n";
         echo "============================\n\n";
+        
+        // Block categories filter (test first before other tests clear filters)
+        $this->test_block_categories_filter();
         
         // Basic widget rendering
         $this->test_basic_widget_rendering();
@@ -251,6 +255,59 @@ class GoalieTronTester {
             
             $this->assert_contains($output, 'goalietron_meter', "Design '$design' contains meter");
         }
+        
+        echo "\n";
+    }
+    
+    private function test_block_categories_filter() {
+        echo "Block Categories Filter\n";
+        
+        // Don't reset filters for this test since the block_categories_all filter
+        // is registered at global scope when goalietron.php loads
+        reset_wp_options();
+        reset_wp_assets();
+        
+        // Simulate WordPress initialization to register blocks and filters
+        simulate_wp_init();
+        
+        // Test case 1: Categories without 'widgets' category (should add it)
+        $initial_categories = array(
+            array('slug' => 'text', 'title' => 'Text'),
+            array('slug' => 'media', 'title' => 'Media'),
+            array('slug' => 'design', 'title' => 'Design')
+        );
+        
+        $filtered_categories = apply_filters('block_categories_all', $initial_categories);
+        
+        // Should add widgets category
+        $widgets_found = false;
+        foreach ($filtered_categories as $category) {
+            if ($category['slug'] === 'widgets') {
+                $widgets_found = true;
+                break;
+            }
+        }
+        
+        $this->assert_equals($widgets_found, true, 'Widgets category added when missing');
+        $this->assert_equals(count($filtered_categories), 4, 'Category count increased by 1');
+        
+        // Test case 2: Categories already containing 'widgets' category (should not duplicate)
+        $categories_with_widgets = array(
+            array('slug' => 'text', 'title' => 'Text'),
+            array('slug' => 'widgets', 'title' => 'Widgets'),
+            array('slug' => 'media', 'title' => 'Media')
+        );
+        
+        $filtered_categories_2 = apply_filters('block_categories_all', $categories_with_widgets);
+        
+        $this->assert_equals(count($filtered_categories_2), 3, 'Category count unchanged when widgets already exists');
+        
+        // Test case 3: Empty categories array (should add widgets)
+        $empty_categories = array();
+        $filtered_empty = apply_filters('block_categories_all', $empty_categories);
+        
+        $this->assert_equals(count($filtered_empty), 1, 'Widgets category added to empty array');
+        $this->assert_equals($filtered_empty[0]['slug'], 'widgets', 'Added category has correct slug');
         
         echo "\n";
     }
