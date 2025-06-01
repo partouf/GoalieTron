@@ -8,15 +8,15 @@
 // Load mock WordPress environment
 require_once __DIR__ . '/mock-wordpress.php';
 
+// Include the test base class
+require_once __DIR__ . '/GoalieTronTestBase.php';
+
 // Load the plugin files
 require_once dirname(__DIR__) . '/PatreonClient.php';
 require_once dirname(__DIR__) . '/goalietron.php';
 
 // Test helper class for CSS classes
-class GoalieTronCSSClassTester {
-    private $test_count = 0;
-    private $pass_count = 0;
-    private $fail_count = 0;
+class GoalieTronCSSClassTester extends GoalieTronTestBase {
     
     public function run_css_class_tests() {
         echo "Starting GoalieTron CSS Class Tests...\n";
@@ -29,14 +29,9 @@ class GoalieTronCSSClassTester {
         $this->test_edge_cases();
         
         // Summary
-        echo "\n=====================================\n";
-        echo "CSS Class Test Summary:\n";
-        echo "Total tests: {$this->test_count}\n";
-        echo "Passed: {$this->pass_count}\n";
-        echo "Failed: {$this->fail_count}\n";
-        echo "=====================================\n";
+        $this->printTestSummary('CSS Class');
         
-        return $this->fail_count === 0;
+        return $this->getTestResults()['success'];
     }
     
     private function test_block_supports_custom_classname() {
@@ -207,78 +202,9 @@ class GoalieTronCSSClassTester {
         echo "\n";
     }
     
-    // Assertion helpers
-    private function assert_contains($haystack, $needle, $message) {
-        $this->test_count++;
-        if (strpos($haystack, $needle) !== false) {
-            echo "✓ PASS: $message\n";
-            $this->pass_count++;
-        } else {
-            echo "✗ FAIL: $message\n";
-            echo "  Expected to find: '$needle'\n";
-            echo "  In output of length: " . strlen($haystack) . "\n";
-            $this->fail_count++;
-        }
-    }
-    
-    private function assert_not_contains($haystack, $needle, $message) {
-        $this->test_count++;
-        if (strpos($haystack, $needle) === false) {
-            echo "✓ PASS: $message\n";
-            $this->pass_count++;
-        } else {
-            echo "✗ FAIL: $message\n";
-            echo "  Did not expect to find: '$needle'\n";
-            $this->fail_count++;
-        }
-    }
-    
-    private function assert_equals($actual, $expected, $message) {
-        $this->test_count++;
-        if ($actual === $expected) {
-            echo "✓ PASS: $message\n";
-            $this->pass_count++;
-        } else {
-            echo "✗ FAIL: $message\n";
-            echo "  Expected: '$expected'\n";
-            echo "  Actual: '$actual'\n";
-            $this->fail_count++;
-        }
-    }
-    
-    private function assert_true($value, $message) {
-        $this->assert_equals($value, true, $message);
-    }
-    
-    private function assert_not_null($value, $message) {
-        $this->test_count++;
-        if ($value !== null) {
-            echo "✓ PASS: $message\n";
-            $this->pass_count++;
-        } else {
-            echo "✗ FAIL: $message\n";
-            echo "  Expected: non-null value\n";
-            echo "  Actual: null\n";
-            $this->fail_count++;
-        }
-    }
-    
-    private function assert_file_exists($filepath, $message) {
-        $this->test_count++;
-        if (file_exists($filepath)) {
-            echo "✓ PASS: $message\n";
-            $this->pass_count++;
-        } else {
-            echo "✗ FAIL: $message\n";
-            echo "  Expected file to exist: $filepath\n";
-            $this->fail_count++;
-        }
-    }
 }
 
 // Run the CSS class tests
 $tester = new GoalieTronCSSClassTester();
 $success = $tester->run_css_class_tests();
-
-// Exit with appropriate code
 exit($success ? 0 : 1);

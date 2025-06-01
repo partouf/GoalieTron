@@ -13,13 +13,13 @@ define('WP_DEBUG', true);
 // Include the mock WordPress environment
 require_once dirname(__FILE__) . '/mock-wordpress.php';
 
+// Include the test base class
+require_once dirname(__FILE__) . '/GoalieTronTestBase.php';
+
 // Include the main plugin file
 require_once dirname(__DIR__) . '/goalietron.php';
 
-class GoalieTronSecurityTester {
-    private $test_count = 0;
-    private $passed_count = 0;
-    private $failed_count = 0;
+class GoalieTronSecurityTester extends GoalieTronTestBase {
     
     public function run() {
         echo "Starting GoalieTron Security Tests...\n";
@@ -38,14 +38,9 @@ class GoalieTronSecurityTester {
         $this->test_json_validation();
         
         // Summary
-        echo "\n=====================================\n";
-        echo "Security Test Summary:\n";
-        echo "Total tests: {$this->test_count}\n";
-        echo "Passed: {$this->passed_count}\n";
-        echo "Failed: {$this->failed_count}\n";
-        echo "=====================================\n";
+        $this->printTestSummary('Security');
         
-        return $this->failed_count === 0;
+        return $this->getTestResults()['success'];
     }
     
     private function test_xss_prevention() {
@@ -321,43 +316,6 @@ class GoalieTronSecurityTester {
         echo "\n";
     }
     
-    // Assertion helpers
-    private function assert_equals($actual, $expected, $message) {
-        $this->test_count++;
-        if ($actual === $expected) {
-            echo "✓ PASS: $message\n";
-            $this->passed_count++;
-        } else {
-            echo "✗ FAIL: $message\n";
-            echo "  Expected: " . var_export($expected, true) . "\n";
-            echo "  Actual: " . var_export($actual, true) . "\n";
-            $this->failed_count++;
-        }
-    }
-    
-    private function assert_contains($haystack, $needle, $message) {
-        $this->test_count++;
-        if (strpos($haystack, $needle) !== false) {
-            echo "✓ PASS: $message\n";
-            $this->passed_count++;
-        } else {
-            echo "✗ FAIL: $message\n";
-            echo "  String not found: $needle\n";
-            $this->failed_count++;
-        }
-    }
-    
-    private function assert_not_contains($haystack, $needle, $message) {
-        $this->test_count++;
-        if (strpos($haystack, $needle) === false) {
-            echo "✓ PASS: $message\n";
-            $this->passed_count++;
-        } else {
-            echo "✗ FAIL: $message\n";
-            echo "  String should not be present: $needle\n";
-            $this->failed_count++;
-        }
-    }
 }
 
 // Run the tests

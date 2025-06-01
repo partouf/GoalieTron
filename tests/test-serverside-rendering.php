@@ -13,13 +13,13 @@ define('WP_DEBUG', true);
 // Include the mock WordPress environment
 require_once dirname(__FILE__) . '/mock-wordpress.php';
 
+// Include the test base class
+require_once dirname(__FILE__) . '/GoalieTronTestBase.php';
+
 // Include the main plugin file
 require_once dirname(__DIR__) . '/goalietron.php';
 
-class GoalieTronServerSideRenderingTester {
-    private $test_count = 0;
-    private $passed_count = 0;
-    private $failed_count = 0;
+class GoalieTronServerSideRenderingTester extends GoalieTronTestBase {
     
     public function run() {
         echo "Starting GoalieTron Server-Side Rendering Tests...\n";
@@ -41,14 +41,9 @@ class GoalieTronServerSideRenderingTester {
         $this->test_edge_cases();
         
         // Summary
-        echo "\n==================================================\n";
-        echo "Server-Side Rendering Test Summary:\n";
-        echo "Total tests: {$this->test_count}\n";
-        echo "Passed: {$this->passed_count}\n";
-        echo "Failed: {$this->failed_count}\n";
-        echo "==================================================\n";
+        $this->printTestSummary('Server-Side Rendering');
         
-        return $this->failed_count === 0;
+        return $this->getTestResults()['success'];
     }
     
     private function test_server_side_progress_calculation() {
@@ -310,94 +305,6 @@ class GoalieTronServerSideRenderingTester {
         return ob_get_clean();
     }
     
-    // Assertion helpers
-    private function assert_contains($haystack, $needle, $message) {
-        $this->test_count++;
-        if (strpos($haystack, $needle) !== false) {
-            echo "✓ PASS: $message\n";
-            $this->passed_count++;
-        } else {
-            echo "✗ FAIL: $message\n";
-            echo "  Expected to find: '$needle'\n";
-            $this->failed_count++;
-        }
-    }
-    
-    private function assert_not_contains($haystack, $needle, $message) {
-        $this->test_count++;
-        if (strpos($haystack, $needle) === false) {
-            echo "✓ PASS: $message\n";
-            $this->passed_count++;
-        } else {
-            echo "✗ FAIL: $message\n";
-            echo "  Should not contain: '$needle'\n";
-            $this->failed_count++;
-        }
-    }
-    
-    private function assert_contains_regex($haystack, $pattern, $message) {
-        $this->test_count++;
-        if (preg_match($pattern, $haystack)) {
-            echo "✓ PASS: $message\n";
-            $this->passed_count++;
-        } else {
-            echo "✗ FAIL: $message\n";
-            echo "  Expected to match pattern: $pattern\n";
-            $this->failed_count++;
-        }
-    }
-    
-    private function assert_equals($actual, $expected, $message) {
-        $this->test_count++;
-        if ($actual === $expected) {
-            echo "✓ PASS: $message\n";
-            $this->passed_count++;
-        } else {
-            echo "✗ FAIL: $message\n";
-            echo "  Expected: $expected\n";
-            echo "  Actual: $actual\n";
-            $this->failed_count++;
-        }
-    }
-    
-    private function assert_greater_than($actual, $expected, $message) {
-        $this->test_count++;
-        if ($actual > $expected) {
-            echo "✓ PASS: $message\n";
-            $this->passed_count++;
-        } else {
-            echo "✗ FAIL: $message\n";
-            echo "  Expected: > $expected\n";
-            echo "  Actual: $actual\n";
-            $this->failed_count++;
-        }
-    }
-    
-    private function assert_less_than_or_equal($actual, $expected, $message) {
-        $this->test_count++;
-        if ($actual <= $expected) {
-            echo "✓ PASS: $message\n";
-            $this->passed_count++;
-        } else {
-            echo "✗ FAIL: $message\n";
-            echo "  Expected: <= $expected\n";
-            echo "  Actual: $actual\n";
-            $this->failed_count++;
-        }
-    }
-    
-    private function assert_true($condition, $message) {
-        $this->test_count++;
-        if ($condition) {
-            echo "✓ PASS: $message\n";
-            $this->passed_count++;
-        } else {
-            echo "✗ FAIL: $message\n";
-            echo "  Expected: true\n";
-            echo "  Actual: false\n";
-            $this->failed_count++;
-        }
-    }
 }
 
 // Run the tests
