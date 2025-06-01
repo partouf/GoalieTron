@@ -1,0 +1,52 @@
+{
+    "patrons-10": {
+        "type": "patrons",
+        "target": 10,
+        "title": "Reach 10 patrons"
+    },
+    "coffee-fund": {
+        "type": "income",
+        "target": 50,
+        "title": "Cover our monthly coffee budget"
+    },
+    "equipment-fund": {
+        "type": "income",
+        "target": 250,
+        "title": "Save for better equipment"
+    },
+    "patrons-25": {
+        "type": "patrons",
+        "target": 25,
+        "title": "Build a small community"
+    },
+    "patrons-50": {
+        "type": "patrons",
+        "target": 50,
+        "title": "Grow our supporter base"
+    },
+    "weekly-content": {
+        "type": "posts",
+        "target": 50,
+        "title": "Reach 50 posts milestone"
+    },
+    "consistent-creator": {
+        "type": "posts",
+        "target": 100,
+        "title": "100 posts - Consistent creator!"
+    },
+    "paid-members-5": {
+        "type": "members",
+        "target": 5,
+        "title": "Reach 5 paid members"
+    },
+    "paid-members-10": {
+        "type": "members",
+        "target": 10,
+        "title": "10 paying supporters"
+    },
+    "paid-members-25": {
+        "type": "members",
+        "target": 25,
+        "title": "Build a core support group"
+    }
+}

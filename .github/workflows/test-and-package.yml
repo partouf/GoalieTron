@@ -1,0 +1,82 @@
+name: Test and Package
+
+on:
+  push:
+    branches: [ master, main, 'feature/**' ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  test-and-package:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        php-version: ['7.4', '8.1']
+    
+    name: PHP ${{ matrix.php-version }} Test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: ${{ matrix.php-version }}
+        coverage: none
+        tools: composer:v2
+    
+    - name: Check PHP Version
+      run: php -v
+    
+    - name: Run tests
+      run: make test
+    
+    - name: Create plugin package
+      if: matrix.php-version == '8.1'  # Only create package once
+      run: make package
+    
+    - name: Upload plugin package
+      if: matrix.php-version == '8.1'  # Only upload from one PHP version
+      uses: actions/upload-artifact@v4
+      with:
+        name: goalietron-plugin-${{ github.sha }}
+        path: goalietron-plugin.zip
+        retention-days: 30
+    
+    - name: Upload test results
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-php${{ matrix.php-version }}
+        path: tests/*.log
+        retention-days: 7
+
+  release-package:
+    needs: test-and-package
+    runs-on: ubuntu-latest
+    if: success() && github.ref == 'refs/heads/master'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'
+    
+    - name: Create release package
+      run: |
+        make package
+        VERSION=$(grep "Version:" goalietron.php | sed 's/.*Version: //')
+        mv goalietron-plugin.zip goalietron-v${VERSION}.zip
+    
+    - name: Upload release artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: goalietron-release-${{ github.sha }}
+        path: goalietron-v*.zip
+        retention-days: 90

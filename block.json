@@ -1,0 +1,71 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "goalietron/goalietron-block",
+  "version": "1.0.0",
+  "title": "GoalieTron",
+  "category": "widgets",
+  "icon": "chart-bar",
+  "description": "Display your Patreon goal progress with customizable themes and animations.",
+  "supports": {
+    "html": false,
+    "align": true,
+    "customClassName": true,
+    "spacing": {
+      "margin": true,
+      "padding": true
+    }
+  },
+  "textdomain": "goalietron",
+  "render": "file:./block-render.php",
+  "attributes": {
+    "title": {
+      "type": "string",
+      "default": ""
+    },
+    "toptext": {
+      "type": "string",
+      "default": "Support our work!"
+    },
+    "bottomtext": {
+      "type": "string",
+      "default": "Every supporter counts!"
+    },
+    "design": {
+      "type": "string",
+      "default": "default",
+      "enum": ["default", "fancy", "minimal", "streamlined", "reversed", "swapped"]
+    },
+    "metercolor": {
+      "type": "string",
+      "default": "green"
+    },
+    "showgoaltext": {
+      "type": "string",
+      "default": "true",
+      "enum": ["true", "false"]
+    },
+    "showbutton": {
+      "type": "string",
+      "default": "false",
+      "enum": ["true", "false"]
+    },
+    "goal_mode": {
+      "type": "string",
+      "default": "custom",
+      "enum": ["legacy", "custom"]
+    },
+    "patreon_userid": {
+      "type": "string",
+      "default": ""
+    },
+    "patreon_username": {
+      "type": "string",
+      "default": "scishow"
+    },
+    "custom_goal_id": {
+      "type": "string",
+      "default": "patrons-25"
+    }
+  }
+}
