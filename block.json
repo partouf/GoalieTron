@@ -25,11 +25,11 @@
     },
     "toptext": {
       "type": "string",
-      "default": ""
+      "default": "Support our work!"
     },
     "bottomtext": {
       "type": "string",
-      "default": ""
+      "default": "Every supporter counts!"
     },
     "design": {
       "type": "string",
@@ -52,7 +52,7 @@
     },
     "goal_mode": {
       "type": "string",
-      "default": "legacy",
+      "default": "custom",
       "enum": ["legacy", "custom"]
     },
     "patreon_userid": {
@@ -61,11 +61,11 @@
     },
     "patreon_username": {
       "type": "string",
-      "default": ""
+      "default": "scishow"
     },
     "custom_goal_id": {
       "type": "string",
-      "default": ""
+      "default": "patrons-25"
     }
   }
 }

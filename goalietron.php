@@ -250,6 +250,9 @@ class GoalieTron
 
         $patreonData = $this->GetPatreonData();
         
+        // Calculate server-side preview values for WordPress editor
+        $serverSideValues = $this->calculateServerSidePreviewData($patreonData);
+        
         // Create unique ID for this widget instance to avoid variable conflicts
         $widgetId = 'gt_' . uniqid();
         
@@ -261,12 +264,98 @@ class GoalieTron
         $configView = str_replace('<script language="JavaScript">', '<script language="JavaScript" data-widget-id="' . $widgetId . '">', $configView);
         
         $configView = str_replace("{goalietron_json}", $patreonData, $configView);
+        
+        // Inject server-side calculated values for better editor preview
+        $configView = str_replace('<span class="goalietron_goalmoneytext"></span>', 
+                                 '<span class="goalietron_goalmoneytext">' . esc_html($serverSideValues['goalText']) . '</span>', 
+                                 $configView);
+        $configView = str_replace('<span style="width: 0%"></span>', 
+                                 '<span style="width: ' . esc_attr($serverSideValues['progressPercent']) . '%"></span>', 
+                                 $configView);
 
         echo "<div>";
         echo $configView;
         echo "</div>";
 
         echo $args['after_widget'];
+    }
+    
+    /**
+     * Calculate server-side preview data for WordPress editor
+     * This provides basic goal text and progress percentage so the widget
+     * doesn't look empty in the editor before JavaScript runs
+     */
+    private function calculateServerSidePreviewData($patreonDataJson) {
+        $result = array(
+            'goalText' => '',
+            'progressPercent' => 0
+        );
+        
+        try {
+            $patreonData = json_decode($patreonDataJson, true);
+            
+            if (!$patreonData || !isset($patreonData['included'])) {
+                return $result;
+            }
+            
+            // Find campaign and goal data
+            $campaignData = null;
+            $goalData = null;
+            
+            foreach ($patreonData['included'] as $item) {
+                if ($item['type'] === 'campaign') {
+                    $campaignData = $item['attributes'];
+                } elseif ($item['type'] === 'goal') {
+                    $goalData = $item['attributes'];
+                }
+            }
+            
+            if (!$campaignData || !$goalData) {
+                return $result;
+            }
+            
+            // Calculate current value based on goal type
+            $currentValue = 0;
+            $targetValue = $goalData['amount_cents'] / 100;
+            $isCountGoal = in_array($goalData['goal_type'], ['patrons', 'members', 'posts']);
+            
+            if ($goalData['goal_type'] === 'patrons') {
+                $currentValue = $campaignData['patron_count'] ?? 0;
+            } elseif ($goalData['goal_type'] === 'members') {
+                $currentValue = $campaignData['paid_member_count'] ?? 0;
+            } elseif ($goalData['goal_type'] === 'posts') {
+                $currentValue = $campaignData['creation_count'] ?? 0;
+            } elseif ($goalData['goal_type'] === 'income') {
+                $currentValue = ($campaignData['pledge_sum'] ?? 0) / 100; // Convert cents to dollars
+            }
+            
+            // Calculate progress percentage
+            $progressPercent = $targetValue > 0 ? min(100, floor(($currentValue / $targetValue) * 100)) : 0;
+            
+            // Generate goal text
+            if ($isCountGoal) {
+                if ($currentValue >= $targetValue) {
+                    $goalText = number_format($targetValue) . ' - reached!';
+                } else {
+                    $goalText = number_format($currentValue) . ' of ' . number_format($targetValue);
+                }
+            } else {
+                // Income goal
+                if ($currentValue >= $targetValue) {
+                    $goalText = '$' . number_format($targetValue) . ' - reached!';
+                } else {
+                    $goalText = '$' . number_format($currentValue) . ' of $' . number_format($targetValue);
+                }
+            }
+            
+            $result['goalText'] = $goalText;
+            $result['progressPercent'] = $progressPercent;
+            
+        } catch (Exception $e) {
+            // If anything fails, just return empty values
+        }
+        
+        return $result;
     }
 
     private function GetPatreonData()
@@ -355,12 +444,13 @@ class GoalieTron
             if (isset($goals[$goalId])) {
                 $goal = $goals[$goalId];
                 
-                // Create mock campaign data for testing
+                // Create mock campaign data for testing with ~33% progress
                 $mockCampaignData = array(
-                    'patron_count' => 7,  // Show some progress for testing
-                    'paid_member_count' => 4,
-                    'creation_count' => 15,
-                    'campaign_name' => 'Test Campaign',
+                    'patron_count' => 8,      // 8/25 = 32% for patrons-25 goal
+                    'paid_member_count' => 3, // 3/10 = 30% for members goals  
+                    'creation_count' => 17,   // 17/50 = 34% for posts goals
+                    'pledge_sum' => 8333,     // $83.33 in cents, $83/$250 = 33% for income goals
+                    'campaign_name' => 'Demo Campaign',
                     'custom_goals' => array($goalId => $goal)
                 );
                 
