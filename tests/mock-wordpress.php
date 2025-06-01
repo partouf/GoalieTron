@@ -152,6 +152,36 @@ function wp_enqueue_script($handle) {
     $wp_enqueued_scripts[$handle] = true;
 }
 
+function wp_add_inline_script($handle, $data, $position = 'after') {
+    global $wp_registered_scripts;
+    
+    // Assert handle is provided and not empty
+    if (empty($handle)) {
+        throw new Exception("wp_add_inline_script: Handle cannot be empty");
+    }
+    
+    // Assert data is provided and not empty
+    if (empty($data)) {
+        throw new Exception("wp_add_inline_script: Data cannot be empty for handle '$handle'");
+    }
+    
+    // Check if script was registered before adding inline script
+    if (!isset($wp_registered_scripts[$handle])) {
+        throw new Exception("wp_add_inline_script: Script '$handle' must be registered before adding inline script");
+    }
+    
+    // Valid positions are 'before' and 'after'
+    if (!in_array($position, ['before', 'after'])) {
+        throw new Exception("wp_add_inline_script: Position must be 'before' or 'after', got '$position'");
+    }
+    
+    // Store inline script data for potential validation
+    if (!isset($wp_registered_scripts[$handle]['inline'])) {
+        $wp_registered_scripts[$handle]['inline'] = [];
+    }
+    $wp_registered_scripts[$handle]['inline'][$position][] = $data;
+}
+
 function wp_parse_args($args, $defaults = '') {
     if (is_object($args)) {
         $r = get_object_vars($args);
@@ -169,22 +199,137 @@ function wp_parse_args($args, $defaults = '') {
 
 // Widget functionality removed - GoalieTron is now block-only
 
-// Mock WordPress actions/filters
+// Mock WordPress actions/filters with proper execution
 $wp_actions = array();
 $wp_filters = array();
+$wp_actions_done = array();
 
 function add_action($tag, $function_to_add, $priority = 10, $accepted_args = 1) {
     global $wp_actions;
-    $wp_actions[$tag][] = $function_to_add;
+    
+    if (!isset($wp_actions[$tag])) {
+        $wp_actions[$tag] = array();
+    }
+    
+    if (!isset($wp_actions[$tag][$priority])) {
+        $wp_actions[$tag][$priority] = array();
+    }
+    
+    $wp_actions[$tag][$priority][] = array(
+        'function' => $function_to_add,
+        'accepted_args' => $accepted_args
+    );
 }
 
 function add_filter($tag, $function_to_add, $priority = 10, $accepted_args = 1) {
     global $wp_filters;
-    $wp_filters[$tag][] = $function_to_add;
+    
+    if (!isset($wp_filters[$tag])) {
+        $wp_filters[$tag] = array();
+    }
+    
+    if (!isset($wp_filters[$tag][$priority])) {
+        $wp_filters[$tag][$priority] = array();
+    }
+    
+    $wp_filters[$tag][$priority][] = array(
+        'function' => $function_to_add,
+        'accepted_args' => $accepted_args
+    );
+}
+
+function do_action($tag, ...$args) {
+    global $wp_actions, $wp_actions_done;
+    
+    // Track that this action was done
+    if (!isset($wp_actions_done[$tag])) {
+        $wp_actions_done[$tag] = 0;
+    }
+    $wp_actions_done[$tag]++;
+    
+    // Execute all functions for this action, sorted by priority
+    if (isset($wp_actions[$tag])) {
+        ksort($wp_actions[$tag]); // Sort by priority
+        
+        foreach ($wp_actions[$tag] as $priority => $functions) {
+            foreach ($functions as $function_data) {
+                $function = $function_data['function'];
+                $accepted_args = $function_data['accepted_args'];
+                
+                // Limit args to accepted_args count
+                $limited_args = array_slice($args, 0, $accepted_args);
+                
+                // Call the function
+                if (is_callable($function)) {
+                    call_user_func_array($function, $limited_args);
+                } else {
+                    // For testing, we might have string function names that don't exist yet
+                    // In a real WordPress environment, this would be an error
+                    if (function_exists($function)) {
+                        call_user_func_array($function, $limited_args);
+                    }
+                }
+            }
+        }
+    }
+}
+
+function apply_filters($tag, $value, ...$args) {
+    global $wp_filters;
+    
+    // Execute all functions for this filter, sorted by priority
+    if (isset($wp_filters[$tag])) {
+        ksort($wp_filters[$tag]); // Sort by priority
+        
+        foreach ($wp_filters[$tag] as $priority => $functions) {
+            foreach ($functions as $function_data) {
+                $function = $function_data['function'];
+                $accepted_args = $function_data['accepted_args'];
+                
+                // Prepare args: $value is always first, then additional args
+                $filter_args = array_merge([$value], array_slice($args, 0, $accepted_args - 1));
+                
+                // Call the function and update value
+                if (is_callable($function)) {
+                    $value = call_user_func_array($function, $filter_args);
+                } else {
+                    if (function_exists($function)) {
+                        $value = call_user_func_array($function, $filter_args);
+                    }
+                }
+            }
+        }
+    }
+    
+    return $value;
 }
 
 function did_action($tag) {
-    return false; // Always return false for testing
+    global $wp_actions_done;
+    return isset($wp_actions_done[$tag]) ? $wp_actions_done[$tag] : 0;
+}
+
+function has_action($tag, $function_to_check = false) {
+    global $wp_actions;
+    
+    if (!isset($wp_actions[$tag])) {
+        return false;
+    }
+    
+    if ($function_to_check === false) {
+        return true; // Just check if any actions exist for this tag
+    }
+    
+    // Check if specific function is registered
+    foreach ($wp_actions[$tag] as $priority => $functions) {
+        foreach ($functions as $function_data) {
+            if ($function_data['function'] === $function_to_check) {
+                return $priority;
+            }
+        }
+    }
+    
+    return false;
 }
 
 // Don't override error_log - it's a built-in PHP function
@@ -204,7 +349,124 @@ function __($text, $domain = 'default') {
 }
 
 function register_block_type($block_type, $args = array()) {
-    // Mock function - no-op for testing
+    // Assert block_type is provided and not empty
+    if (empty($block_type)) {
+        throw new Exception("register_block_type: Block type cannot be empty");
+    }
+    
+    // If block_type is a file path (ends with .json), check if the file exists
+    if (is_string($block_type) && substr($block_type, -5) === '.json') {
+        if (!file_exists($block_type)) {
+            throw new Exception("register_block_type: Block JSON file does not exist: $block_type");
+        }
+        
+        // Parse the block.json to check for referenced files
+        $blockJson = file_get_contents($block_type);
+        $blockData = json_decode($blockJson, true);
+        
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new Exception("register_block_type: Invalid JSON in block file: $block_type");
+        }
+        
+        $blockDir = dirname($block_type);
+        
+        // Check if render file exists (if specified in block.json)
+        if (isset($blockData['render']) && strpos($blockData['render'], 'file:') === 0) {
+            $renderFile = $blockDir . '/' . substr($blockData['render'], 5); // Remove 'file:' prefix
+            if (!file_exists($renderFile)) {
+                throw new Exception("register_block_type: Render file does not exist: $renderFile (specified in $block_type)");
+            }
+        }
+        
+        // Check editorScript file if specified in block.json
+        if (isset($blockData['editorScript']) && strpos($blockData['editorScript'], 'file:') === 0) {
+            $scriptFile = $blockDir . '/' . substr($blockData['editorScript'], 5); // Remove 'file:' prefix
+            if (!file_exists($scriptFile)) {
+                throw new Exception("register_block_type: Editor script file does not exist: $scriptFile (specified in $block_type)");
+            }
+        }
+        
+        // Check style file if specified in block.json
+        if (isset($blockData['style']) && strpos($blockData['style'], 'file:') === 0) {
+            $styleFile = $blockDir . '/' . substr($blockData['style'], 5); // Remove 'file:' prefix
+            if (!file_exists($styleFile)) {
+                throw new Exception("register_block_type: Style file does not exist: $styleFile (specified in $block_type)");
+            }
+        }
+        
+        // Check editorStyle file if specified in block.json
+        if (isset($blockData['editorStyle']) && strpos($blockData['editorStyle'], 'file:') === 0) {
+            $editorStyleFile = $blockDir . '/' . substr($blockData['editorStyle'], 5); // Remove 'file:' prefix
+            if (!file_exists($editorStyleFile)) {
+                throw new Exception("register_block_type: Editor style file does not exist: $editorStyleFile (specified in $block_type)");
+            }
+        }
+    }
+    
+    // Validate args array if provided
+    if (!empty($args)) {
+        // Check render_callback file if it's a file path
+        if (isset($args['render_callback']) && is_string($args['render_callback']) && strpos($args['render_callback'], '.php') !== false) {
+            // This would be a file path, but in WordPress it's typically a function name, so we'll skip this check
+        }
+        
+        // Check editor_script was registered before block registration
+        if (isset($args['editor_script'])) {
+            global $wp_registered_scripts;
+            $script_handle = $args['editor_script'];
+            
+            if (empty($script_handle)) {
+                throw new Exception("register_block_type: editor_script handle cannot be empty");
+            }
+            
+            if (!isset($wp_registered_scripts[$script_handle])) {
+                throw new Exception("register_block_type: editor_script '$script_handle' must be registered with wp_register_script() before registering block");
+            }
+        }
+        
+        // Check editor_style was registered before block registration (if specified)
+        if (isset($args['editor_style'])) {
+            global $wp_registered_styles;
+            $style_handle = $args['editor_style'];
+            
+            if (empty($style_handle)) {
+                throw new Exception("register_block_type: editor_style handle cannot be empty");
+            }
+            
+            if (!isset($wp_registered_styles[$style_handle])) {
+                throw new Exception("register_block_type: editor_style '$style_handle' must be registered with wp_register_style() before registering block");
+            }
+        }
+        
+        // Check style was registered before block registration (if specified)
+        if (isset($args['style'])) {
+            global $wp_registered_styles;
+            $style_handle = $args['style'];
+            
+            if (empty($style_handle)) {
+                throw new Exception("register_block_type: style handle cannot be empty");
+            }
+            
+            if (!isset($wp_registered_styles[$style_handle])) {
+                throw new Exception("register_block_type: style '$style_handle' must be registered with wp_register_style() before registering block");
+            }
+        }
+        
+        // Check script was registered before block registration (if specified)
+        if (isset($args['script'])) {
+            global $wp_registered_scripts;
+            $script_handle = $args['script'];
+            
+            if (empty($script_handle)) {
+                throw new Exception("register_block_type: script handle cannot be empty");
+            }
+            
+            if (!isset($wp_registered_scripts[$script_handle])) {
+                throw new Exception("register_block_type: script '$script_handle' must be registered with wp_register_script() before registering block");
+            }
+        }
+    }
+    
     return true;
 }
 
@@ -227,10 +489,37 @@ function reset_wp_assets() {
     $wp_enqueued_scripts = array();
 }
 
+// Helper function to reset WordPress actions/filters for testing
+function reset_wp_actions() {
+    global $wp_actions, $wp_filters, $wp_actions_done;
+    $wp_actions = array();
+    $wp_filters = array();
+    $wp_actions_done = array();
+}
+
 // Helper function to reset all WordPress state for testing
 function reset_wp_state() {
     reset_wp_options();
     reset_wp_assets();
+    reset_wp_actions();
+}
+
+// Helper function to simulate WordPress initialization for testing
+function simulate_wp_init() {
+    // Trigger the init action to register blocks and other components
+    do_action('init');
+}
+
+// Helper function to get registered actions for testing
+function get_registered_actions($tag = null) {
+    global $wp_actions;
+    return $tag ? (isset($wp_actions[$tag]) ? $wp_actions[$tag] : array()) : $wp_actions;
+}
+
+// Helper function to get action execution count for testing
+function get_action_done_count($tag) {
+    global $wp_actions_done;
+    return isset($wp_actions_done[$tag]) ? $wp_actions_done[$tag] : 0;
 }
 
 // Helper function to set options for testing

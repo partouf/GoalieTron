@@ -53,6 +53,9 @@ class GoalieTronTester {
         
         reset_wp_state();
         
+        // Simulate WordPress initialization to register blocks
+        simulate_wp_init();
+        
         $goalietron = new GoalieTron();
         $args = array(
             'before_widget' => '<div class="goalietron-block">',
@@ -76,6 +79,9 @@ class GoalieTronTester {
         echo "Custom Goal Mode\n";
         
         reset_wp_state();
+        
+        // Simulate WordPress initialization to register blocks
+        simulate_wp_init();
         
         // Create instance with custom goal configuration
         $custom_options = array(
@@ -115,6 +121,9 @@ class GoalieTronTester {
         echo "Undefined Goal Mode Handling\n";
         
         reset_wp_state();
+        
+        // Simulate WordPress initialization to register blocks
+        simulate_wp_init();
         
         // Create instance without goal_mode specified (should default to custom)
         $undefined_options = array(
@@ -156,6 +165,9 @@ class GoalieTronTester {
         echo "Multiple Blocks\n";
         
         reset_wp_state();
+        
+        // Simulate WordPress initialization to register blocks
+        simulate_wp_init();
         
         // First block
         $block1_options = array(
@@ -213,6 +225,9 @@ class GoalieTronTester {
         
         foreach ($designs as $design) {
             reset_wp_state();
+            
+            // Simulate WordPress initialization to register blocks
+            simulate_wp_init();
             
             $options = array(
                 'goal_mode' => 'custom',
