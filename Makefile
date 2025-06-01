@@ -1,19 +1,22 @@
 # GoalieTron Makefile for testing and packaging
 
-.PHONY: test test-basic test-html test-all clean package help
+.PHONY: test test-basic test-html test-css test-security test-all clean package help
 
 # Default target
 help:
 	@echo "GoalieTron Test Commands:"
-	@echo "  make test        - Run all tests (syntax + functionality)"
+	@echo "  make test         - Run all tests (syntax + all test suites)"
 	@echo "  make syntax-check - Check PHP syntax only"
-	@echo "  make test-basic  - Run basic functionality tests"
-	@echo "  make test-html   - Run HTML output validation tests"
-	@echo "  make clean       - Clean up test artifacts"
-	@echo "  make package     - Create plugin zip file"
+	@echo "  make test-basic   - Run basic functionality tests"
+	@echo "  make test-html    - Run HTML output validation tests"
+	@echo "  make test-css     - Run CSS class handling tests"
+	@echo "  make test-security - Run security tests"
+	@echo "  make test-all     - Run all tests with verbose output"
+	@echo "  make clean        - Clean up test artifacts"
+	@echo "  make package      - Create plugin zip file"
 
 # Run all tests
-test: syntax-check test-basic test-html
+test: syntax-check test-basic test-html test-css test-security
 
 # Run basic tests
 test-basic:
@@ -25,12 +28,26 @@ test-html:
 	@echo "Running HTML output tests..."
 	@php tests/test-html-output.php
 
+# Run CSS class handling tests
+test-css:
+	@echo "Running CSS class handling tests..."
+	@php tests/test-css-classes.php
+
+# Run security tests
+test-security:
+	@echo "Running security tests..."
+	@php tests/test-security.php
+
 # Run all tests with verbose output
 test-all:
 	@echo "Running all tests with debug output..."
 	@DEBUG_OUTPUT=true php tests/test-runner.php
 	@echo ""
 	@DEBUG_OUTPUT=true php tests/test-html-output.php
+	@echo ""
+	@DEBUG_OUTPUT=true php tests/test-css-classes.php
+	@echo ""
+	@DEBUG_OUTPUT=true php tests/test-security.php
 
 # Clean up any test artifacts
 clean:
