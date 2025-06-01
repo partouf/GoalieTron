@@ -22,19 +22,19 @@ class GoalieTronTester {
         echo "Starting GoalieTron Tests...\n";
         echo "============================\n\n";
         
-        // Test 1: Basic widget rendering
+        // Basic widget rendering
         $this->test_basic_widget_rendering();
         
-        // Test 2: Custom goal mode with data
+        // Custom goal mode with data
         $this->test_custom_goal_mode();
         
-        // Test 3: Legacy mode (should return empty)
-        $this->test_legacy_mode();
+        // Undefined goal_mode handling
+        $this->test_undefined_goal_mode();
         
-        // Test 4: Multiple blocks (check for unique IDs)
+        // Multiple blocks (check for unique IDs)
         $this->test_multiple_blocks();
         
-        // Test 5: Different designs
+        // Different designs
         $this->test_different_designs();
         
         // Summary
@@ -49,7 +49,7 @@ class GoalieTronTester {
     }
     
     private function test_basic_widget_rendering() {
-        echo "Test 1: Basic Block Rendering\n";
+        echo "Basic Block Rendering\n";
         
         reset_wp_options();
         
@@ -73,7 +73,7 @@ class GoalieTronTester {
     }
     
     private function test_custom_goal_mode() {
-        echo "Test 2: Custom Goal Mode\n";
+        echo "Custom Goal Mode\n";
         
         reset_wp_options();
         
@@ -111,18 +111,20 @@ class GoalieTronTester {
         echo "\n";
     }
     
-    private function test_legacy_mode() {
-        echo "Test 3: Legacy Mode\n";
+    private function test_undefined_goal_mode() {
+        echo "Undefined Goal Mode Handling\n";
         
         reset_wp_options();
         
-        $legacy_options = array(
-            'goal_mode' => 'legacy',
-            'patreon_userid' => '', // Empty user ID
-            'design' => 'default'
+        // Create instance without goal_mode specified (should default to custom)
+        $undefined_options = array(
+            'design' => 'default',
+            'toptext' => 'Help us out!',
+            'bottomtext' => 'Thanks!'
+            // No goal_mode, custom_goal_id, or patreon_username
         );
         
-        $goalietron = GoalieTron::CreateInstance($legacy_options);
+        $goalietron = GoalieTron::CreateInstance($undefined_options);
         
         $args = array(
             'before_widget' => '<div class="widget">',
@@ -135,13 +137,23 @@ class GoalieTronTester {
         $goalietron->DisplayWidget($args);
         $output = ob_get_clean();
         
-        $this->assert_contains($output, '_PatreonData = {}', 'Legacy mode returns empty data');
+        // Should still render without errors
+        $this->assert_contains($output, 'Help us out!', 'Top text present with undefined goal_mode');
+        $this->assert_contains($output, 'Thanks!', 'Bottom text present with undefined goal_mode');
+        $this->assert_contains($output, '_PatreonData', 'PatreonData variable present with undefined goal_mode');
+        $this->assert_contains($output, 'goalietron_meter', 'Progress meter present with undefined goal_mode');
+        
+        // Should have fallback data (not completely empty)
+        $this->assert_not_contains($output, 'PatreonData = {}', 'Should use fallback data, not empty JSON');
+        
+        // Should contain test goal data since no specific goal is configured
+        $this->assert_contains($output, 'Reach 10 Patrons', 'Should use default test goal when no goal configured');
         
         echo "\n";
     }
     
     private function test_multiple_blocks() {
-        echo "Test 4: Multiple Blocks\n";
+        echo "Multiple Blocks\n";
         
         reset_wp_options();
         
@@ -157,8 +169,9 @@ class GoalieTronTester {
         
         // Second block
         $block2_options = array(
-            'goal_mode' => 'legacy',
-            'patreon_userid' => '',
+            'goal_mode' => 'custom',
+            'custom_goal_id' => 'patrons-10',
+            'patreon_username' => 'user2',
             'design' => 'fancy'
         );
         
@@ -194,7 +207,7 @@ class GoalieTronTester {
     }
     
     private function test_different_designs() {
-        echo "Test 5: Different Designs\n";
+        echo "Different Designs\n";
         
         $designs = array('default', 'fancy', 'minimal', 'streamlined', 'reversed', 'swapped');
         

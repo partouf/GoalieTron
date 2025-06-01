@@ -7,9 +7,7 @@
  *   php patreon-cli.php <command> [options]
  * 
  * Commands:
- *   user <id>              Get user data by ID
  *   username <username>    Convert username to ID
- *   goal <id>             Get goal information for user
  *   public <username>     Get public campaign data from about page
  *   goals <username>      Get campaign data with custom goal progress
  *   goal-add <id> <type> <target> <title>  Add custom goal
@@ -86,16 +84,8 @@ class PatreonCLI
         }
         
         switch ($command) {
-            case 'user':
-                $this->handleUserCommand();
-                break;
-                
             case 'username':
                 $this->handleUsernameCommand();
-                break;
-                
-            case 'goal':
-                $this->handleGoalCommand();
                 break;
                 
             case 'public':
@@ -147,23 +137,6 @@ class PatreonCLI
         $this->client->saveCustomGoalsToFile($this->goalsFile);
     }
     
-    private function handleUserCommand()
-    {
-        if (!isset($this->args[1])) {
-            $this->error("User ID required");
-            return;
-        }
-        
-        $userId = $this->args[1];
-        $data = $this->client->getUserData($userId, $this->options['cache']);
-        
-        if ($data === false) {
-            $this->error("Failed to fetch user data for ID: $userId");
-            return;
-        }
-        
-        $this->output($data);
-    }
     
     private function handleUsernameCommand()
     {
@@ -187,30 +160,6 @@ class PatreonCLI
         }
     }
     
-    private function handleGoalCommand()
-    {
-        if (!isset($this->args[1])) {
-            $this->error("User ID required");
-            return;
-        }
-        
-        $userId = $this->args[1];
-        $data = $this->client->getUserData($userId, $this->options['cache']);
-        
-        if ($data === false) {
-            $this->error("Failed to fetch user data for ID: $userId");
-            return;
-        }
-        
-        // Extract goal information
-        $goalInfo = $this->extractGoalInfo($data);
-        
-        if ($this->options['format'] === 'json') {
-            $this->output($goalInfo);
-        } else {
-            $this->displayGoalInfo($goalInfo);
-        }
-    }
     
     private function handlePublicCommand()
     {
@@ -373,12 +322,14 @@ class PatreonCLI
             $this->output($goals);
         } else {
             echo "=== Custom Goals ===\n\n";
-            foreach ($goals as $goal) {
-                echo "ID: {$goal['id']}\n";
+            foreach ($goals as $goalId => $goal) {
+                echo "ID: {$goalId}\n";
                 echo "Title: {$goal['title']}\n";
                 echo "Type: {$goal['type']}\n";
                 echo "Target: {$goal['target']}\n";
-                echo "Created: " . date('Y-m-d H:i:s', $goal['created_at']) . "\n";
+                if (isset($goal['created_at'])) {
+                    echo "Created: " . date('Y-m-d H:i:s', $goal['created_at']) . "\n";
+                }
                 echo "\n";
             }
         }
@@ -463,87 +414,6 @@ class PatreonCLI
         }
     }
     
-    private function extractGoalInfo($data)
-    {
-        $info = [
-            'creator_name' => null,
-            'patron_count' => null,
-            'pledge_sum' => null,
-            'pledge_currency' => 'USD',
-            'goals' => []
-        ];
-        
-        // Extract basic info
-        if (isset($data['name'])) {
-            $info['creator_name'] = $data['name'];
-        }
-        
-        if (isset($data['patron_count'])) {
-            $info['patron_count'] = $data['patron_count'];
-        }
-        
-        if (isset($data['pledge_sum'])) {
-            $info['pledge_sum'] = $data['pledge_sum'];
-        }
-        
-        // Extract goals
-        if (isset($data['goals']) && is_array($data['goals'])) {
-            foreach ($data['goals'] as $goal) {
-                $goalData = [
-                    'amount' => isset($goal['amount']) ? $goal['amount'] : 0,
-                    'title' => isset($goal['title']) ? $goal['title'] : 'Untitled Goal',
-                    'description' => isset($goal['description']) ? $goal['description'] : '',
-                    'completed_percentage' => 0
-                ];
-                
-                // Calculate completion percentage
-                if ($goalData['amount'] > 0 && $info['pledge_sum'] !== null) {
-                    $goalData['completed_percentage'] = min(100, round(($info['pledge_sum'] / $goalData['amount']) * 100, 2));
-                }
-                
-                $info['goals'][] = $goalData;
-            }
-        }
-        
-        return $info;
-    }
-    
-    private function displayGoalInfo($info)
-    {
-        echo "=== Patreon Goal Information ===\n\n";
-        
-        if ($info['creator_name']) {
-            echo "Creator: {$info['creator_name']}\n";
-        }
-        
-        if ($info['patron_count'] !== null) {
-            echo "Patrons: {$info['patron_count']}\n";
-        }
-        
-        if ($info['pledge_sum'] !== null) {
-            $amount = number_format($info['pledge_sum'] / 100, 2);
-            echo "Current pledges: \${$amount} {$info['pledge_currency']}/month\n";
-        }
-        
-        if (!empty($info['goals'])) {
-            echo "\nGoals:\n";
-            foreach ($info['goals'] as $i => $goal) {
-                $goalNum = $i + 1;
-                $amount = number_format($goal['amount'] / 100, 2);
-                echo "\n{$goalNum}. {$goal['title']}\n";
-                echo "   Target: \${$amount}/month\n";
-                echo "   Progress: {$goal['completed_percentage']}%\n";
-                if ($goal['description']) {
-                    echo "   Description: {$goal['description']}\n";
-                }
-                
-                // Display progress bar
-                $this->displayProgressBar($goal['completed_percentage']);
-            }
-        } else {
-            echo "\nNo goals found\n";
-        }
-    }
     
     private function displayProgressBar($percentage)
     {
@@ -580,9 +450,7 @@ Usage:
   php patreon-cli.php <command> [options]
 
 Commands:
-  user <id>              Get user data by ID
   username <username>    Convert username to ID
-  goal <id>             Get goal information for user
   public <username>     Get public campaign data from about page
   goals <username>      Get campaign data with custom goal progress
   goal-add <id> <type> <target> <title>  Add custom goal
@@ -598,16 +466,14 @@ Options:
   --timeout=<seconds>   Request timeout (default: 3)
 
 Examples:
-  php patreon-cli.php user 123456
   php patreon-cli.php username someuser
-  php patreon-cli.php goal 123456 --format=json
   php patreon-cli.php public scishow --format=json
   php patreon-cli.php goal-add patrons-1000 patrons 1000 "Reach 1000 patrons"
   php patreon-cli.php goals scishow
   php patreon-cli.php goal-list
-  php patreon-cli.php user 123456 --no-cache
 
 Note: Custom goals are automatically saved to and loaded from 'patreon-goals.json'
+Legacy Patreon API v1 commands have been removed as they no longer work.
 
 HELP;
     }

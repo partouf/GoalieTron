@@ -60,7 +60,7 @@ class GoalieTron
             "bottomtext" => "",
             "showgoaltext" => "true",
             "showbutton" => "false",
-            "goal_mode" => "legacy",
+            "goal_mode" => "custom",
             "custom_goal_id" => "",
             "patreon_username" => ""
         );
@@ -187,14 +187,12 @@ class GoalieTron
 
     private function GetPatreonData()
     {
-        if ($this->options['goal_mode'] === 'custom' && !empty($this->options['custom_goal_id']) && !empty($this->options['patreon_username'])) {
+        // Always use custom goal mode - legacy API mode is no longer supported
+        if (!empty($this->options['custom_goal_id']) && !empty($this->options['patreon_username'])) {
             return $this->GetCustomGoalData();
         } else {
-            // If custom mode but missing settings, return test data
-            if ($this->options['goal_mode'] === 'custom') {
-                return $this->GetCustomGoalDataFallback();
-            }
-            return $this->GetPatreonRawJSONData();
+            // If missing settings, return test data
+            return $this->GetCustomGoalDataFallback();
         }
     }
     
@@ -361,47 +359,6 @@ class GoalieTron
         return $jsonData;
     }
 
-    private function GetPatreonRawJSONData()
-    {
-        if ($this->options['cache_only'] == "yes") {
-            // Use cached data only
-            if (!empty($this->options['cache'])) {
-                return $this->options['cache'];
-            } else {
-                return "{}";
-            }
-        }
-        
-        if (empty($this->options['patreon_userid'])) {
-            return "{}";
-        }
-        
-        // Check if we need to fetch new data
-        $useCache = !empty($this->options['cache']) && (time() - $this->options['cache_age'] <= 60);
-        
-        if ($useCache) {
-            return $this->options['cache'];
-        }
-        
-        // Fetch new data using PatreonClient
-        $data_raw = $this->patreonClient->getUserDataRaw($this->options['patreon_userid'], false);
-        
-        if ($data_raw !== "{}") {
-            // Update cache
-            $this->options['cache'] = $data_raw;
-            $this->SaveOptions("cache");
-            
-            $this->options['cache_age'] = time();
-            $this->SaveOptions("cache_age");
-        } else {
-            // Use cached data if available
-            if (!empty($this->options['cache'])) {
-                $data_raw = $this->options['cache'];
-            }
-        }
-        
-        return $data_raw;
-    }
 
     private function GetUserIDFromUserName($username)
     {

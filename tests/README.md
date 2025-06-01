@@ -37,7 +37,7 @@ make package      # Create plugin zip file
 ### Basic Tests (`test-runner.php`)
 - Basic widget rendering
 - Custom goal mode with data
-- Legacy mode (empty data)
+- Undefined goal_mode handling (fallback behavior)
 - Multiple blocks isolation
 - Different design themes
 

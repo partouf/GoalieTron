@@ -1,28 +1,20 @@
 <?php
 /**
- * PatreonClient - A standalone class for interacting with Patreon API
+ * PatreonClient - A standalone class for interacting with Patreon public data
  * 
- * IMPORTANT: As of 2024, Patreon API v2 requires OAuth authentication for all endpoints.
- * This class currently uses deprecated v1 endpoints that no longer work without authentication.
+ * This class provides methods to:
+ * - Fetch public campaign data from Patreon creator pages (no authentication required)
+ * - Create and manage custom goals with progress tracking
+ * - Convert usernames to user IDs
+ * - Built-in caching functionality
  * 
- * To use this class, you need to:
- * 1. Register as a Patreon creator and create an OAuth client
- * 2. Obtain access tokens through OAuth flow
- * 3. Update the API endpoints to v2 format
- * 
- * This class provides methods to fetch Patreon user data and convert usernames to user IDs.
- * It includes built-in caching functionality.
+ * Note: Legacy Patreon API v1 methods have been removed as they no longer work
+ * without OAuth authentication. This class now focuses on public data scraping
+ * and custom goal management.
  */
 class PatreonClient
 {
     const PATREON_WEBSITE_URL = "https://www.patreon.com/";
-    const PATREON_USER_API_URL = "https://api.patreon.com/user/"; // DEPRECATED: v1 endpoint, requires OAuth in v2
-    const PATREON_API_V2_BASE = "https://www.patreon.com/api/oauth2/v2/";
-    
-    // OAuth configuration (to be set by user)
-    private $accessToken = null;
-    private $clientId = null;
-    private $clientSecret = null;
     
     // Custom goals storage
     private $customGoals = [];
@@ -51,166 +43,7 @@ class PatreonClient
         $this->fetchTimeout = max(1, intval($seconds));
     }
     
-    /**
-     * Set OAuth access token for API v2 authentication
-     * 
-     * @param string $accessToken The OAuth access token
-     */
-    public function setAccessToken($accessToken)
-    {
-        $this->accessToken = $accessToken;
-    }
     
-    /**
-     * Set OAuth client credentials
-     * 
-     * @param string $clientId The OAuth client ID
-     * @param string $clientSecret The OAuth client secret
-     */
-    public function setOAuthCredentials($clientId, $clientSecret)
-    {
-        $this->clientId = $clientId;
-        $this->clientSecret = $clientSecret;
-    }
-    
-    /**
-     * Get user data from Patreon API
-     * 
-     * NOTE: This method uses deprecated v1 endpoints and will fail without OAuth.
-     * Consider using getUserDataV2() for authenticated requests.
-     * 
-     * @param string|int $userId The Patreon user ID
-     * @param bool $useCache Whether to use cache (default: true)
-     * @return array|false Returns decoded JSON data as array or false on failure
-     */
-    public function getUserData($userId, $useCache = true)
-    {
-        if (empty($userId)) {
-            return false;
-        }
-        
-        // Check cache first
-        if ($useCache && isset($this->cache[$userId])) {
-            $cachedData = $this->cache[$userId];
-            if (time() - $cachedData['timestamp'] <= $this->cacheTimeout) {
-                return $cachedData['data'];
-            }
-        }
-        
-        // Fetch from API (DEPRECATED v1 endpoint - will likely fail)
-        $url = self::PATREON_USER_API_URL . $userId;
-        $headers = ['Connection: close'];
-        
-        // Add OAuth header if access token is available
-        if ($this->accessToken) {
-            $headers[] = 'Authorization: Bearer ' . $this->accessToken;
-        }
-        
-        $context = stream_context_create([
-            'http' => [
-                'header' => $headers,
-                'timeout' => $this->fetchTimeout,
-                'ignore_errors' => true
-            ],
-            'https' => [
-                'header' => $headers,
-                'timeout' => $this->fetchTimeout,
-                'ignore_errors' => true
-            ]
-        ]);
-        
-        $dataRaw = @file_get_contents($url, false, $context);
-        
-        if ($dataRaw === false) {
-            error_log("PatreonClient: Failed to fetch data from v1 endpoint. OAuth authentication required for API v2.");
-            // Return cached data if available, even if expired
-            if (isset($this->cache[$userId])) {
-                return $this->cache[$userId]['data'];
-            }
-            return false;
-        }
-        
-        $data = json_decode($dataRaw, true);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            // Return cached data if available
-            if (isset($this->cache[$userId])) {
-                return $this->cache[$userId]['data'];
-            }
-            return false;
-        }
-        
-        // Update cache
-        $this->cache[$userId] = [
-            'timestamp' => time(),
-            'data' => $data
-        ];
-        
-        return $data;
-    }
-    
-    /**
-     * Get raw JSON data from Patreon API
-     * 
-     * @param string|int $userId The Patreon user ID
-     * @param bool $useCache Whether to use cache (default: true)
-     * @return string Returns raw JSON string or "{}" on failure
-     */
-    public function getUserDataRaw($userId, $useCache = true)
-    {
-        if (empty($userId)) {
-            return "{}";
-        }
-        
-        // Check cache first
-        if ($useCache && isset($this->cache[$userId])) {
-            $cachedData = $this->cache[$userId];
-            if (time() - $cachedData['timestamp'] <= $this->cacheTimeout) {
-                return json_encode($cachedData['data']);
-            }
-        }
-        
-        // Fetch from API (DEPRECATED v1 endpoint - will likely fail)
-        $url = self::PATREON_USER_API_URL . $userId;
-        $headers = ['Connection: close'];
-        
-        // Add OAuth header if access token is available
-        if ($this->accessToken) {
-            $headers[] = 'Authorization: Bearer ' . $this->accessToken;
-        }
-        
-        $context = stream_context_create([
-            'http' => [
-                'header' => $headers,
-                'timeout' => $this->fetchTimeout,
-                'ignore_errors' => true
-            ],
-            'https' => [
-                'header' => $headers,
-                'timeout' => $this->fetchTimeout,
-                'ignore_errors' => true
-            ]
-        ]);
-        
-        $dataRaw = @file_get_contents($url, false, $context);
-        
-        if ($dataRaw === false || !$this->isValidJson($dataRaw)) {
-            error_log("PatreonClient: Failed to fetch raw data from v1 endpoint. OAuth authentication required for API v2.");
-            // Return cached data if available, even if expired
-            if (isset($this->cache[$userId])) {
-                return json_encode($this->cache[$userId]['data']);
-            }
-            return "{}";
-        }
-        
-        // Update cache with decoded then re-encoded data to ensure validity
-        $data = json_decode($dataRaw, true);
-        $this->cache[$userId] = [
-            'timestamp' => time(),
-            'data' => $data
-        ];
-        
-        return $dataRaw;
-    }
     
     /**
      * Get public campaign data from Patreon about page (no authentication required)
