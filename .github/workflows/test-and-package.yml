@@ -36,6 +36,21 @@ jobs:
     - name: Run tests
       run: make test
     
+    - name: Quick Plugin Check
+      if: matrix.php-version == '8.1'  # Only run plugin check once
+      run: |
+        echo "Running basic plugin validation..."
+        # Check that required files exist
+        test -f goalietron.php || { echo "Missing main plugin file"; exit 1; }
+        test -f readme.txt || { echo "Missing readme.txt"; exit 1; }
+        test -f LICENSE || { echo "Missing LICENSE file"; exit 1; }
+        
+        # Check plugin header
+        grep -q "Plugin Name:" goalietron.php || { echo "Missing Plugin Name header"; exit 1; }
+        grep -q "License:" goalietron.php || { echo "Missing License header"; exit 1; }
+        
+        echo "✓ Basic plugin structure validation passed"
+    
     - name: Create plugin package
       if: matrix.php-version == '8.1'  # Only create package once
       run: make package

@@ -1,0 +1,56 @@
+name: WordPress Plugin Check
+
+on:
+  push:
+    branches: [ master, main, 'feature/**' ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  plugin-check:
+    name: WordPress Plugin Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Create plugin package
+      run: |
+        # Create a clean plugin package for checking
+        make package
+        
+        # Extract the package to a directory for the plugin check
+        mkdir -p plugin-for-check
+        cd plugin-for-check
+        unzip -q ../goalietron-plugin.zip
+        
+        # The action expects the plugin files in the current directory
+        if [ -d goalietron ]; then
+          mv goalietron/* .
+          rmdir goalietron
+        fi
+        
+        echo "Plugin structure for checking:"
+        ls -la
+    
+    - name: Run WordPress Plugin Check
+      uses: wordpress/plugin-check-action@v1
+      with:
+        build-dir: './plugin-for-check'
+        wp-version: 'latest'
+        php-version: '8.1'
+        exclude-checks: ''  # Run all checks
+        include-experimental: false
+    
+    - name: Upload Plugin Check results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: plugin-check-results-${{ github.sha }}
+        path: |
+          plugin-check-results.txt
+          plugin-check-results.json
+        retention-days: 30
+        if-no-files-found: ignore
