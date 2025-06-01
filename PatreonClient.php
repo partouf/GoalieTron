@@ -386,65 +386,6 @@ class PatreonClient
         return file_put_contents($filePath, $json) !== false;
     }
     
-    /**
-     * Convert a Patreon username to user ID
-     * 
-     * @param string $username The Patreon username (without @ or URL)
-     * @return int|false Returns the user ID or false on failure
-     */
-    public function getUserIdFromUsername($username)
-    {
-        if (empty($username)) {
-            return false;
-        }
-        
-        // Remove @ if present
-        $username = ltrim($username, '@');
-        
-        $url = self::PATREON_WEBSITE_URL . $username;
-        
-        $context = stream_context_create([
-            'http' => [
-                'timeout' => $this->fetchTimeout,
-                'ignore_errors' => true
-            ],
-            'https' => [
-                'timeout' => $this->fetchTimeout,
-                'ignore_errors' => true
-            ]
-        ]);
-        
-        $pageData = @file_get_contents($url, false, $context);
-        
-        if ($pageData === false) {
-            return false;
-        }
-        
-        // Look for creator_id in the page source
-        $creatorIdPos = strpos($pageData, '"creator_id": ');
-        if ($creatorIdPos === false) {
-            return false;
-        }
-        
-        $pageData = substr($pageData, $creatorIdPos + 14);
-        $endIdPos = strpos($pageData, "\n");
-        if ($endIdPos === false) {
-            $endIdPos = strpos($pageData, "}");
-        }
-        
-        if ($endIdPos === false) {
-            return false;
-        }
-        
-        $userId = trim(substr($pageData, 0, $endIdPos));
-        
-        // Validate it's numeric
-        if (!is_numeric($userId) || $userId <= 0) {
-            return false;
-        }
-        
-        return intval($userId);
-    }
     
     /**
      * Clear the cache for a specific user or all users

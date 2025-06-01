@@ -7,7 +7,6 @@
  *   php patreon-cli.php <command> [options]
  * 
  * Commands:
- *   username <username>    Convert username to ID
  *   public <username>     Get public campaign data from about page
  *   goals <username>      Get campaign data with custom goal progress
  *   goal-add <id> <type> <target> <title>  Add custom goal
@@ -84,10 +83,6 @@ class PatreonCLI
         }
         
         switch ($command) {
-            case 'username':
-                $this->handleUsernameCommand();
-                break;
-                
             case 'public':
                 $this->handlePublicCommand();
                 break;
@@ -138,27 +133,6 @@ class PatreonCLI
     }
     
     
-    private function handleUsernameCommand()
-    {
-        if (!isset($this->args[1])) {
-            $this->error("Username required");
-            return;
-        }
-        
-        $username = $this->args[1];
-        $userId = $this->client->getUserIdFromUsername($username);
-        
-        if ($userId === false) {
-            $this->error("Failed to get user ID for username: $username");
-            return;
-        }
-        
-        if ($this->options['format'] === 'json') {
-            $this->output(['username' => $username, 'user_id' => $userId]);
-        } else {
-            echo "User ID for @$username: $userId\n";
-        }
-    }
     
     
     private function handlePublicCommand()
@@ -450,7 +424,6 @@ Usage:
   php patreon-cli.php <command> [options]
 
 Commands:
-  username <username>    Convert username to ID
   public <username>     Get public campaign data from about page
   goals <username>      Get campaign data with custom goal progress
   goal-add <id> <type> <target> <title>  Add custom goal
@@ -466,7 +439,6 @@ Options:
   --timeout=<seconds>   Request timeout (default: 3)
 
 Examples:
-  php patreon-cli.php username someuser
   php patreon-cli.php public scishow --format=json
   php patreon-cli.php goal-add patrons-1000 patrons 1000 "Reach 1000 patrons"
   php patreon-cli.php goals scishow

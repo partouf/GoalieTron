@@ -360,11 +360,6 @@ class GoalieTron
     }
 
 
-    private function GetUserIDFromUserName($username)
-    {
-        $userId = $this->patreonClient->getUserIdFromUsername($username);
-        return $userId !== false ? $userId : -1;
-    }
 
 
     public function generateCustomGoalsOptions()
