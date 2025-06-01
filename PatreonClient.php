@@ -394,7 +394,28 @@ class PatreonClient
      */
     public function saveCustomGoalsToFile($filePath)
     {
-        $json = json_encode($this->customGoals, JSON_PRETTY_PRINT);
+        // Filter out runtime fields that shouldn't be persisted
+        $goalsToSave = array();
+        foreach ($this->customGoals as $goalId => $goal) {
+            // Only save configuration fields, not runtime data
+            $cleanGoal = array(
+                'type' => $goal['type'],
+                'target' => $goal['target'],
+                'title' => $goal['title']
+            );
+            
+            // Preserve optional fields if they exist
+            if (isset($goal['id'])) {
+                $cleanGoal['id'] = $goal['id'];
+            }
+            if (isset($goal['created_at'])) {
+                $cleanGoal['created_at'] = $goal['created_at'];
+            }
+            
+            $goalsToSave[$goalId] = $cleanGoal;
+        }
+        
+        $json = json_encode($goalsToSave, JSON_PRETTY_PRINT);
         return file_put_contents($filePath, $json) !== false;
     }
     
