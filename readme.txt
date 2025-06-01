@@ -6,7 +6,6 @@ Tested up to: 4.9.2
 Tags: patreon, fundraising, goals
 Stable tag: 1.3
 Contributors: partouf
-Donate link: https://blockchain.info/address/1BfATaWYzDQbYXk92XuvwkbsiWEzyjretX
 
 A WordPress block plugin for displaying Patreon goals and pledge progress.
 

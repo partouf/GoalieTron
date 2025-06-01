@@ -80,4 +80,3 @@ This project is licensed under the GPLv2 License - see the [LICENSE](LICENSE) fi
 
 - 🐛 [Report bugs](https://github.com/partouf/GoalieTron/issues)
 - 💡 [Request features](https://github.com/partouf/GoalieTron/issues)
-- 💰 [Donate Bitcoin](https://blockchain.info/address/1BfATaWYzDQbYXk92XuvwkbsiWEzyjretX)
